@@ -99,21 +99,28 @@
         .toast{background:#fff;border-radius:8px;padding:15px 20px;box-shadow:0 5px 20px rgba(0,0,0,.15);margin-bottom:10px;display:flex;align-items:center;gap:10px;animation:slideIn .3s}
         .toast.success{border-left:4px solid var(--g)}
         .toast.error{border-left:4px solid var(--r)}
+        .toast.info{border-left:4px solid #17a2b8}
         @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
         
-        .sync-indicator{position:fixed;bottom:20px;right:20px;padding:8px 15px;border-radius:20px;font-size:12px;z-index:9999;display:none}
-        .sync-indicator.syncing{display:block;background:#fff3cd;color:#856404}
-        .sync-indicator.synced{display:block;background:#d4edda;color:#155724}
-        .sync-indicator.error{display:block;background:#f8d7da;color:#721c24}
+        .sync-status{position:fixed;bottom:20px;right:20px;padding:8px 15px;border-radius:20px;font-size:.8rem;display:flex;align-items:center;gap:8px;z-index:9999;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+        .sync-status.online{background:#d4edda;color:#155724}
+        .sync-status.offline{background:#f8d7da;color:#721c24}
+        .sync-status.syncing{background:#fff3cd;color:#856404}
+        .sync-dot{width:8px;height:8px;border-radius:50%;animation:pulse 1.5s infinite}
+        .online .sync-dot{background:#28a745}
+        .offline .sync-dot{background:#dc3545}
+        .syncing .sync-dot{background:#ffc107}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
     </style>
 </head>
 <body>
 
-<!-- Sync Indicator -->
-<div id="syncIndicator" class="sync-indicator"></div>
-
-<!-- Toast Container -->
 <div class="toast-container" id="toasts"></div>
+
+<div class="sync-status online" id="syncStatus">
+    <div class="sync-dot"></div>
+    <span id="syncText">Online</span>
+</div>
 
 <!-- LOGIN -->
 <div id="loginPage" class="login-wrap">
@@ -135,6 +142,9 @@
             </div>
             <button type="submit" class="btn btn-primary w-100" id="loginBtn"><i class="fas fa-sign-in-alt me-2"></i>Login</button>
         </form>
+        <div class="mt-3 text-center">
+            <small class="text-muted">Default: admin / admin123</small>
+        </div>
     </div>
 </div>
 
@@ -295,10 +305,14 @@
                         <div class="card">
                             <div class="card-header"><i class="fas fa-database me-2"></i>Data</div>
                             <div class="card-body">
-                                <button class="btn btn-outline-success w-100 mb-2" onclick="exportData()"><i class="fas fa-download me-1"></i>Export All Data</button>
                                 <button class="btn btn-outline-primary w-100 mb-2" onclick="syncNow()"><i class="fas fa-sync me-1"></i>Sync Now</button>
+                                <button class="btn btn-outline-success w-100 mb-2" onclick="exportData()"><i class="fas fa-download me-1"></i>Export All Data</button>
                                 <button class="btn btn-outline-danger w-100" onclick="clearData()"><i class="fas fa-trash me-1"></i>Clear All Data</button>
                             </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><i class="fas fa-users me-2"></i>All Users</div>
+                            <div class="card-body" id="allUsersList"></div>
                         </div>
                     </div>
                 </div>
@@ -317,6 +331,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="sId">
+                <input type="hidden" id="sFbKey">
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Employee ID <span class="text-danger">*</span></label>
@@ -370,6 +385,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="cId">
+                <input type="hidden" id="cFbKey">
                 <div class="mb-3">
                     <label class="form-label">Client/Company Name <span class="text-danger">*</span></label>
                     <input type="text" id="cName" class="form-control" required placeholder="e.g., MBC Pvt Ltd">
@@ -413,6 +429,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="pId">
+                <input type="hidden" id="pFbKey">
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Project Code <span class="text-danger">*</span></label>
@@ -446,6 +463,7 @@
                         </div>
                     </div>
                     <div class="card-body py-2">
+                        <div class="alert alert-info py-1 small mb-2"><i class="fas fa-info-circle"></i> Enable Auth to force GPS check for Attendance.</div>
                         <div class="row">
                             <div class="col-4">
                                 <label class="form-label small">Latitude</label>
@@ -573,28 +591,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- Firebase Scripts -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
 <script>
-// ============== FIREBASE CONFIG ==============
-firebase.initializeApp({
-    apiKey: "AIzaSyCMBoABKBWTOx1B6zEBCk7QCeTKogUYgxQ",
-    authDomain: "a2z-ipm.firebaseapp.com",
-    databaseURL: "https://a2z-ipm-default-rtdb.firebaseio.com",
-    projectId: "a2z-ipm",
-    storageBucket: "a2z-ipm.firebasestorage.app",
-    messagingSenderId: "37433212653",
-    appId: "1:37433212653:web:e58af93855931236d456e4"
-});
-
-const firebaseDB = firebase.database();
-let useFirebase = true; // Set to true to use Firebase as primary database
-
 // ============== CONFIG ==============
-const DB_NAME = 'A2Z_IPM_v7';
+const DB_NAME = 'A2Z_IPM_v9';
 const COMPANY = {
     name: 'A2Z Industrial Solutions',
     addr: '30-F, J-1 Market, Wapda Town, Lahore',
@@ -602,191 +604,365 @@ const COMPANY = {
     email: 'info@a2zidsolutions.com'
 };
 
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyCMBoABKBWTOx1B6zEBCk7QCeTKogUYgxQ",
+    authDomain: "a2z-ipm.firebaseapp.com",
+    databaseURL: "https://a2z-ipm-default-rtdb.firebaseio.com",
+    projectId: "a2z-ipm",
+    storageBucket: "a2z-ipm.firebasestorage.app",
+    messagingSenderId: "37433212653",
+    appId: "1:37433212653:web:e58af93855931236d456e4"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const fbDB = firebase.database();
+
 let db = null;
 let currentUser = null;
 let attMap = null;
 let curProj = null;
 let curForm = null;
 let rowCount = 0;
+let isOnline = navigator.onLine;
 
 // ============== HELPERS ==============
 const $ = id => document.getElementById(id);
 const toast = (msg, type = 'success') => {
     const t = document.createElement('div');
     t.className = `toast ${type}`;
-    t.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger'}"></i><span>${msg}</span>`;
+    t.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle text-success' : type === 'error' ? 'exclamation-circle text-danger' : 'info-circle text-info'}"></i><span>${msg}</span>`;
     $('toasts').appendChild(t);
     setTimeout(() => t.remove(), 3000);
 };
 
-const showSync = (status) => {
-    const el = $('syncIndicator');
-    el.className = 'sync-indicator ' + status;
-    if(status === 'syncing') el.innerHTML = '<i class="fas fa-sync fa-spin me-1"></i>Syncing...';
-    else if(status === 'synced') el.innerHTML = '<i class="fas fa-check me-1"></i>Synced!';
-    else if(status === 'error') el.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Sync Error';
-    if(status === 'synced') setTimeout(() => el.className = 'sync-indicator', 2000);
-};
+function updateSyncStatus(status) {
+    const el = $('syncStatus');
+    const txt = $('syncText');
+    el.className = 'sync-status ' + status;
+    txt.textContent = status === 'online' ? 'Online' : status === 'offline' ? 'Offline' : 'Syncing...';
+}
 
-// ============== FIREBASE DATABASE FUNCTIONS ==============
-const fbAdd = (store, data) => new Promise((res, rej) => {
-    const newRef = firebaseDB.ref(store).push();
-    const newData = { ...data, id: newRef.key, createdAt: Date.now() };
-    newRef.set(newData)
-        .then(() => res(newRef.key))
-        .catch(rej);
+window.addEventListener('online', () => { isOnline = true; updateSyncStatus('online'); syncFromFirebase(); });
+window.addEventListener('offline', () => { isOnline = false; updateSyncStatus('offline'); });
+
+// ============== INDEXEDDB ==============
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => { db = req.result; resolve(db); };
+        req.onupgradeneeded = e => {
+            const d = e.target.result;
+            if (!d.objectStoreNames.contains('users')) d.createObjectStore('users', { keyPath: 'id', autoIncrement: true });
+            if (!d.objectStoreNames.contains('projects')) d.createObjectStore('projects', { keyPath: 'id', autoIncrement: true });
+            if (!d.objectStoreNames.contains('records')) d.createObjectStore('records', { keyPath: 'id', autoIncrement: true });
+        };
+    });
+}
+
+const idbAdd = (store, data) => new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).add({ ...data, createdAt: Date.now() });
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
 });
 
-const fbPut = (store, data) => new Promise((res, rej) => {
-    if(!data.id) return rej(new Error('No ID provided'));
-    firebaseDB.ref(store + '/' + data.id).update({ ...data, updatedAt: Date.now() })
-        .then(() => res(data.id))
-        .catch(rej);
+const idbPut = (store, data) => new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).put({ ...data, updatedAt: Date.now() });
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
 });
 
-const fbDel = (store, id) => new Promise((res, rej) => {
-    firebaseDB.ref(store + '/' + id).remove()
-        .then(() => res())
-        .catch(rej);
+const idbDel = (store, id) => new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).delete(id);
+    req.onsuccess = () => res();
+    req.onerror = () => rej(req.error);
 });
 
-const fbAll = store => new Promise((res, rej) => {
-    firebaseDB.ref(store).once('value')
-        .then(snapshot => {
-            const data = [];
-            snapshot.forEach(child => {
-                data.push({ ...child.val(), id: child.key });
-            });
-            res(data);
-        })
-        .catch(rej);
+const idbAll = store => new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => res(req.result || []);
+    req.onerror = () => rej(req.error);
 });
 
-const fbGet = (store, id) => new Promise((res, rej) => {
-    firebaseDB.ref(store + '/' + id).once('value')
-        .then(snapshot => res(snapshot.val()))
-        .catch(rej);
+const idbGet = (store, id) => new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).get(id);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
 });
 
-// ============== DATABASE WRAPPER (Uses Firebase) ==============
-const dbAdd = async (store, data) => {
-    showSync('syncing');
-    try {
-        const result = await fbAdd(store, data);
-        showSync('synced');
-        return result;
-    } catch(e) {
-        showSync('error');
-        throw e;
-    }
-};
+const idbClear = store => new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).clear();
+    req.onsuccess = () => res();
+    req.onerror = () => rej(req.error);
+});
 
-const dbPut = async (store, data) => {
-    showSync('syncing');
+// ============== FIREBASE OPERATIONS ==============
+const fbSet = async (store, key, data) => {
+    if (!isOnline) return null;
     try {
-        const result = await fbPut(store, data);
-        showSync('synced');
-        return result;
-    } catch(e) {
-        showSync('error');
-        throw e;
-    }
-};
-
-const dbDel = async (store, id) => {
-    showSync('syncing');
-    try {
-        await fbDel(store, id);
-        showSync('synced');
-    } catch(e) {
-        showSync('error');
-        throw e;
-    }
-};
-
-const dbAll = async store => {
-    try {
-        return await fbAll(store);
-    } catch(e) {
-        console.error('Firebase read error:', e);
-        return [];
-    }
-};
-
-const dbGet = async (store, id) => {
-    try {
-        return await fbGet(store, id);
-    } catch(e) {
-        console.error('Firebase get error:', e);
+        await fbDB.ref(`${store}/${key}`).set({ ...data, updatedAt: Date.now() });
+        return key;
+    } catch (e) {
+        console.error('Firebase set error:', e);
         return null;
     }
 };
 
-// ============== SYNC FUNCTION ==============
-async function syncNow() {
-    showSync('syncing');
-    toast('Syncing data...');
+const fbPush = async (store, data) => {
+    if (!isOnline) return null;
     try {
-        // Refresh current page data
-        if(currentUser) {
-            loadDash();
-            loadProjectsDropdown();
+        const ref = fbDB.ref(store).push();
+        await ref.set({ ...data, fbKey: ref.key, createdAt: Date.now() });
+        return ref.key;
+    } catch (e) {
+        console.error('Firebase push error:', e);
+        return null;
+    }
+};
+
+const fbDel = async (store, key) => {
+    if (!isOnline) return;
+    try {
+        await fbDB.ref(`${store}/${key}`).remove();
+    } catch (e) {
+        console.error('Firebase delete error:', e);
+    }
+};
+
+const fbAll = store => new Promise((res) => {
+    fbDB.ref(store).once('value')
+        .then(snap => {
+            const data = [];
+            snap.forEach(child => data.push({ ...child.val(), fbKey: child.key }));
+            res(data);
+        })
+        .catch(e => {
+            console.error('Firebase read error:', e);
+            res([]);
+        });
+});
+
+// ============== DUAL SAVE FUNCTIONS ==============
+const dbAdd = async (store, data) => {
+    const localId = await idbAdd(store, data);
+    
+    if (isOnline) {
+        try {
+            updateSyncStatus('syncing');
+            const fbKey = await fbPush(store, { ...data, localId });
+            if (fbKey) {
+                await idbPut(store, { ...data, id: localId, fbKey });
+            }
+            updateSyncStatus('online');
+        } catch (e) {
+            console.error('Sync error:', e);
+            updateSyncStatus('online');
         }
-        showSync('synced');
-        toast('Data synced successfully!');
-    } catch(e) {
-        showSync('error');
-        toast('Sync error: ' + e.message, 'error');
+    }
+    return localId;
+};
+
+const dbPut = async (store, data) => {
+    await idbPut(store, data);
+    
+    if (isOnline && data.fbKey) {
+        try {
+            updateSyncStatus('syncing');
+            await fbSet(store, data.fbKey, data);
+            updateSyncStatus('online');
+        } catch (e) {
+            console.error('Sync error:', e);
+            updateSyncStatus('online');
+        }
+    }
+};
+
+const dbDel = async (store, id) => {
+    const record = await idbGet(store, id);
+    await idbDel(store, id);
+    
+    if (isOnline && record?.fbKey) {
+        try {
+            updateSyncStatus('syncing');
+            await fbDel(store, record.fbKey);
+            updateSyncStatus('online');
+        } catch (e) {
+            console.error('Sync error:', e);
+            updateSyncStatus('online');
+        }
+    }
+};
+
+const dbAll = store => idbAll(store);
+const dbGet = (store, id) => idbGet(store, id);
+
+// ============== SYNC FROM FIREBASE ==============
+async function syncFromFirebase() {
+    if (!isOnline) return;
+    
+    try {
+        updateSyncStatus('syncing');
+        console.log('🔄 Syncing from Firebase...');
+        
+        // Get Firebase data
+        const fbUsers = await fbAll('users');
+        const fbProjects = await fbAll('projects');
+        const fbRecords = await fbAll('records');
+        
+        // Only sync if Firebase has data
+        if (fbUsers.length > 0) {
+            await idbClear('users');
+            for (const u of fbUsers) {
+                try {
+                    await idbAdd('users', u);
+                } catch(e) { console.log('User sync skip:', e); }
+            }
+        }
+        
+        if (fbProjects.length > 0) {
+            await idbClear('projects');
+            for (const p of fbProjects) {
+                try {
+                    await idbAdd('projects', p);
+                } catch(e) { console.log('Project sync skip:', e); }
+            }
+        }
+        
+        if (fbRecords.length > 0) {
+            await idbClear('records');
+            for (const r of fbRecords) {
+                try {
+                    await idbAdd('records', r);
+                } catch(e) { console.log('Record sync skip:', e); }
+            }
+        }
+        
+        updateSyncStatus('online');
+        console.log('✅ Sync complete');
+    } catch (e) {
+        console.error('Sync error:', e);
+        updateSyncStatus('online');
+    }
+}
+
+async function syncNow() {
+    if (!isOnline) {
+        toast('You are offline', 'error');
+        return;
+    }
+    toast('Syncing...', 'info');
+    await syncFromFirebase();
+    await ensureAdminExists();
+    toast('Sync complete!', 'success');
+    loadDash();
+}
+
+// ============== ENSURE ADMIN EXISTS ==============
+async function ensureAdminExists() {
+    let users = await idbAll('users');
+    const adminExists = users.find(u => u.username === 'admin' && u.role === 'admin');
+    
+    if (!adminExists) {
+        console.log('🔧 Creating default admin...');
+        const adminData = {
+            empId: 'ADM001',
+            name: 'Administrator',
+            username: 'admin',
+            password: 'admin123',
+            role: 'admin',
+            projects: [],
+            active: true
+        };
+        
+        // Add to IndexedDB
+        const localId = await idbAdd('users', adminData);
+        
+        // Add to Firebase
+        if (isOnline) {
+            const fbKey = await fbPush('users', { ...adminData, localId });
+            if (fbKey) {
+                await idbPut('users', { ...adminData, id: localId, fbKey });
+            }
+        }
+        console.log('✅ Admin created');
+    }
+    
+    // Also ensure demo project exists
+    const projects = await idbAll('projects');
+    if (projects.length === 0) {
+        console.log('🔧 Creating demo project...');
+        const projData = {
+            code: 'PRJ001',
+            name: 'Demo Project',
+            client: 'Demo Client',
+            contact: 'Mr. Demo',
+            address: 'Lahore',
+            lat: 31.5204,
+            lng: 74.3587,
+            radius: 50,
+            gpsEnabled: true,
+            active: true
+        };
+        
+        const localId = await idbAdd('projects', projData);
+        
+        if (isOnline) {
+            const fbKey = await fbPush('projects', { ...projData, localId });
+            if (fbKey) {
+                await idbPut('projects', { ...projData, id: localId, fbKey });
+            }
+        }
+        console.log('✅ Demo project created');
     }
 }
 
 // ============== INIT ==============
 async function init() {
     try {
-        const users = await dbAll('users');
+        updateSyncStatus(isOnline ? 'online' : 'offline');
         
-        // Create default admin if no users
-        if (users.length === 0) {
-            await dbAdd('users', {
-                empId: 'ADM001',
-                name: 'Administrator',
-                username: 'admin',
-                password: 'admin123',
-                role: 'admin',
-                projects: [],
-                active: true
-            });
-            await dbAdd('projects', {
-                code: 'PRJ001',
-                name: 'Demo Project',
-                client: 'Demo Client',
-                contact: 'Mr. Demo',
-                address: 'Lahore',
-                lat: 31.5204,
-                lng: 74.3587,
-                radius: 50,
-                gpsEnabled: true,
-                active: true
-            });
-            console.log('✅ Default admin and project created');
+        // Open IndexedDB
+        await openDB();
+        console.log('✅ Database opened');
+        
+        // Sync from Firebase if online
+        if (isOnline) {
+            await syncFromFirebase();
         }
         
-        // Check session
+        // ALWAYS ensure admin exists
+        await ensureAdminExists();
+        
+        // Check for existing session
         const session = localStorage.getItem('a2z_session');
         if (session) {
-            const s = JSON.parse(session);
-            const allUsers = await dbAll('users');
-            const u = allUsers.find(user => user.id === s.id);
-            if (u && u.active) {
-                currentUser = u;
-                showApp();
-                return;
+            try {
+                const s = JSON.parse(session);
+                const users = await idbAll('users');
+                const u = users.find(x => x.username === s.username);
+                if (u && u.active) {
+                    currentUser = u;
+                    showApp();
+                    return;
+                }
+            } catch(e) {
+                localStorage.removeItem('a2z_session');
             }
         }
+        
         $('loginPage').classList.remove('hide');
     } catch (e) {
         console.error('Init error:', e);
-        alert('Error connecting to database. Please check your internet connection.');
+        alert('Error initializing app: ' + e.message);
+        $('loginPage').classList.remove('hide');
     }
 }
 
@@ -798,25 +974,38 @@ $('loginForm').onsubmit = async e => {
     
     $('loginBtn').disabled = true;
     $('loginBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+    $('loginErr').classList.add('hide');
     
     try {
-        const users = await dbAll('users');
+        // Ensure admin exists before login
+        await ensureAdminExists();
+        
+        const users = await idbAll('users');
+        console.log('Users found:', users.length);
+        
         const user = users.find(u => 
-            u.username && u.username.toLowerCase() === username && 
-            u.password === password && u.active === true
+            u.username && 
+            u.username.toLowerCase() === username && 
+            u.password === password && 
+            u.active === true
         );
         
         if (user) {
             currentUser = user;
-            localStorage.setItem('a2z_session', JSON.stringify({ id: user.id }));
-            $('loginErr').classList.add('hide');
+            localStorage.setItem('a2z_session', JSON.stringify({ 
+                id: user.id, 
+                username: user.username 
+            }));
             showApp();
             toast('Welcome, ' + user.name);
         } else {
+            $('loginErr').textContent = 'Invalid username or password';
             $('loginErr').classList.remove('hide');
         }
     } catch (e) {
-        alert('Login error: ' + e.message);
+        console.error('Login error:', e);
+        $('loginErr').textContent = 'Error: ' + e.message;
+        $('loginErr').classList.remove('hide');
     }
     
     $('loginBtn').disabled = false;
@@ -976,8 +1165,8 @@ async function loadProjects() {
             <td>${p.gpsEnabled ? '<span class="badge bg-success">ON</span>' : '<span class="badge bg-secondary">OFF</span>'}</td>
             <td><span class="badge ${p.active ? 'badge-ok' : 'badge-no'}">${p.active ? 'Active' : 'Inactive'}</span></td>
             <td>
-                <button class="btn btn-sm btn-outline-primary" onclick="editProj('${p.id}')"><i class="fas fa-edit"></i></button>
-                <button class="btn btn-sm btn-outline-danger" onclick="delProj('${p.id}')"><i class="fas fa-trash"></i></button>
+                <button class="btn btn-sm btn-outline-primary" onclick="editProj(${p.id})"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="delProj(${p.id})"><i class="fas fa-trash"></i></button>
             </td>
         </tr>
     `).join('') || '<tr><td colspan="6" class="text-center text-muted">No projects</td></tr>';
@@ -986,6 +1175,7 @@ async function loadProjects() {
 function openProjModal() {
     $('projModalTitle').textContent = 'Add Project';
     $('pId').value = '';
+    $('pFbKey').value = '';
     $('pCode').value = '';
     $('pName').value = '';
     $('pClient').value = '';
@@ -1003,6 +1193,7 @@ async function editProj(id) {
     const p = await dbGet('projects', id);
     $('projModalTitle').textContent = 'Edit Project';
     $('pId').value = p.id;
+    $('pFbKey').value = p.fbKey || '';
     $('pCode').value = p.code;
     $('pName').value = p.name;
     $('pClient').value = p.client;
@@ -1018,14 +1209,12 @@ async function editProj(id) {
 
 async function saveProj() {
     const id = $('pId').value;
+    const fbKey = $('pFbKey').value;
     const code = $('pCode').value.trim();
     const name = $('pName').value.trim();
     const client = $('pClient').value.trim();
     
-    if (!code || !name || !client) {
-        alert('Please fill required fields');
-        return;
-    }
+    if (!code || !name || !client) return alert('Please fill required fields');
     
     const data = {
         code, name, client,
@@ -1040,7 +1229,8 @@ async function saveProj() {
     
     try {
         if (id) {
-            data.id = id;
+            data.id = parseInt(id);
+            data.fbKey = fbKey;
             await dbPut('projects', data);
             toast('Project updated');
         } else {
@@ -1065,10 +1255,7 @@ async function delProj(id) {
 }
 
 function getMyLoc() {
-    if (!navigator.geolocation) {
-        alert('Geolocation not supported');
-        return;
-    }
+    if (!navigator.geolocation) return alert('Geolocation not supported');
     navigator.geolocation.getCurrentPosition(
         pos => {
             $('pLat').value = pos.coords.latitude.toFixed(6);
@@ -1100,8 +1287,8 @@ async function loadStaff() {
             <td>${projNames || '<span class="text-muted">None</span>'}</td>
             <td><span class="badge ${s.active ? 'badge-ok' : 'badge-no'}">${s.active ? 'Active' : 'Inactive'}</span></td>
             <td>
-                <button class="btn btn-sm btn-outline-primary" onclick="editStaff('${s.id}')"><i class="fas fa-edit"></i></button>
-                <button class="btn btn-sm btn-outline-danger" onclick="delStaff('${s.id}')"><i class="fas fa-trash"></i></button>
+                <button class="btn btn-sm btn-outline-primary" onclick="editStaff(${s.id})"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="delStaff(${s.id})"><i class="fas fa-trash"></i></button>
             </td>
         </tr>`;
     }).join('') || '<tr><td colspan="6" class="text-center text-muted">No staff members</td></tr>';
@@ -1110,6 +1297,7 @@ async function loadStaff() {
 async function openStaffModal() {
     $('staffModalTitle').textContent = 'Add Staff';
     $('sId').value = '';
+    $('sFbKey').value = '';
     $('sEmpId').value = '';
     $('sName').value = '';
     $('sUser').value = '';
@@ -1135,6 +1323,7 @@ async function editStaff(id) {
     
     $('staffModalTitle').textContent = 'Edit Staff';
     $('sId').value = s.id;
+    $('sFbKey').value = s.fbKey || '';
     $('sEmpId').value = s.empId || '';
     $('sName').value = s.name;
     $('sUser').value = s.username;
@@ -1156,32 +1345,33 @@ async function editStaff(id) {
 
 async function saveStaff() {
     const id = $('sId').value;
+    const fbKey = $('sFbKey').value;
     const empId = $('sEmpId').value.trim();
     const name = $('sName').value.trim();
     const username = $('sUser').value.trim().toLowerCase();
     const password = $('sPwd').value;
     const phone = $('sPhone').value.trim();
     const active = $('sActive').checked;
-    const projects = [...document.querySelectorAll('.staff-proj:checked')].map(c => c.value);
+    const projects = [...document.querySelectorAll('.staff-proj:checked')].map(c => parseInt(c.value));
     
     if (!empId || !name || !username) return alert('Please fill required fields');
     if (!id && !password) return alert('Password required for new staff');
     
     const allUsers = await dbAll('users');
-    const duplicate = allUsers.find(u => u.username.toLowerCase() === username && (!id || u.id !== id));
+    const duplicate = allUsers.find(u => u.username.toLowerCase() === username && (!id || u.id !== parseInt(id)));
     if (duplicate) return alert('Username already exists');
     
     try {
         if (id) {
-            const existing = await dbGet('users', id);
+            const existing = await dbGet('users', parseInt(id));
             await dbPut('users', {
-                id, empId, name, username, password: password || existing.password, phone, role: 'staff', projects, active
+                id: parseInt(id), fbKey, empId, name, username, 
+                password: password || existing.password, 
+                phone, role: 'staff', projects, active
             });
             toast('Staff updated');
         } else {
-            await dbAdd('users', {
-                empId, name, username, password, phone, role: 'staff', projects, active
-            });
+            await dbAdd('users', { empId, name, username, password, phone, role: 'staff', projects, active });
             toast('Staff added');
         }
         bootstrap.Modal.getInstance($('staffModal')).hide();
@@ -1214,8 +1404,8 @@ async function loadClients() {
             <td>${p?.name || '<span class="text-muted">Not assigned</span>'}</td>
             <td><span class="badge ${c.active ? 'badge-ok' : 'badge-no'}">${c.active ? 'Active' : 'Inactive'}</span></td>
             <td>
-                <button class="btn btn-sm btn-outline-primary" onclick="editClient('${c.id}')"><i class="fas fa-edit"></i></button>
-                <button class="btn btn-sm btn-outline-danger" onclick="delClient('${c.id}')"><i class="fas fa-trash"></i></button>
+                <button class="btn btn-sm btn-outline-primary" onclick="editClient(${c.id})"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="delClient(${c.id})"><i class="fas fa-trash"></i></button>
             </td>
         </tr>`;
     }).join('') || '<tr><td colspan="5" class="text-center text-muted">No client accounts</td></tr>';
@@ -1224,6 +1414,7 @@ async function loadClients() {
 async function openClientModal() {
     $('clientModalTitle').textContent = 'Add Client Account';
     $('cId').value = '';
+    $('cFbKey').value = '';
     $('cName').value = '';
     $('cUser').value = '';
     $('cPwd').value = '';
@@ -1240,6 +1431,7 @@ async function editClient(id) {
     const prj = await dbAll('projects');
     $('clientModalTitle').textContent = 'Edit Client Account';
     $('cId').value = c.id;
+    $('cFbKey').value = c.fbKey || '';
     $('cName').value = c.name;
     $('cUser').value = c.username;
     $('cPwd').value = '';
@@ -1254,23 +1446,28 @@ async function editClient(id) {
 
 async function saveClient() {
     const id = $('cId').value;
+    const fbKey = $('cFbKey').value;
     const name = $('cName').value.trim();
     const username = $('cUser').value.trim().toLowerCase();
     const password = $('cPwd').value;
-    const projectId = $('cProj').value;
+    const projectId = parseInt($('cProj').value);
     const active = $('cActive').checked;
     
     if (!name || !username || !projectId) return alert('Fill required fields');
     if (!id && !password) return alert('Password required');
     
     const allUsers = await dbAll('users');
-    const duplicate = allUsers.find(u => u.username.toLowerCase() === username && (!id || u.id !== id));
+    const duplicate = allUsers.find(u => u.username.toLowerCase() === username && (!id || u.id !== parseInt(id)));
     if (duplicate) return alert('Username exists');
     
     try {
         if (id) {
-            const existing = await dbGet('users', id);
-            await dbPut('users', { id, name, username, password: password || existing.password, role: 'client', projectId, active });
+            const existing = await dbGet('users', parseInt(id));
+            await dbPut('users', { 
+                id: parseInt(id), fbKey, name, username, 
+                password: password || existing.password, 
+                role: 'client', projectId, active
+            });
             toast('Client updated');
         } else {
             await dbAdd('users', { name, username, password, role: 'client', projectId, active });
@@ -1303,6 +1500,19 @@ async function loadSettings() {
         $('pwdSetDiv').classList.remove('hide');
         $('pwdMsg').classList.add('hide');
     }
+    
+    if (currentUser.role === 'admin') {
+        const users = await dbAll('users');
+        $('allUsersList').innerHTML = users.map(u => `
+            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                <div>
+                    <strong>${u.name}</strong><br>
+                    <small class="text-muted">${u.username} | ${u.role}</small>
+                </div>
+                <span class="badge ${u.active ? 'badge-ok' : 'badge-no'}">${u.active ? 'Active' : 'Off'}</span>
+            </div>
+        `).join('');
+    }
 }
 
 async function saveProfile() {
@@ -1331,25 +1541,36 @@ async function exportData() {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'a2z_backup.json';
+    a.download = 'a2z_backup_' + new Date().toISOString().split('T')[0] + '.json';
     a.click();
+    toast('Data exported');
 }
 
 function clearData() {
     if (confirm('DELETE ALL DATA? This cannot be undone!')) {
-        firebaseDB.ref('/').remove().then(() => {
+        if (confirm('Are you REALLY sure? This will delete everything!')) {
+            indexedDB.deleteDatabase(DB_NAME);
+            if (isOnline) {
+                fbDB.ref().remove();
+            }
             localStorage.clear();
             location.reload();
-        });
+        }
     }
 }
 
-// ============== FORMS (Abbreviated for length - same logic as before) ==============
+// ============== FORMS ==============
 async function openForm(type) {
     const pid = $('selProject').value;
     if (!pid) return alert('Select a project first');
+    
     curForm = type;
-    if (type === 'attendance') { openAttModal(); return; }
+    
+    if (type === 'attendance') {
+        openAttModal();
+        return;
+    }
+    
     $('formTitle').textContent = formName(type);
     $('formBody').innerHTML = genForm(type);
     rowCount = 0;
@@ -1357,86 +1578,306 @@ async function openForm(type) {
 }
 
 function formName(t) {
-    const names = { attendance: 'Attendance', insecticide: 'Insecticide Log', gluebox: 'Glue Box', efk: 'EFK Monitoring', lizard: 'Lizard Trapping', cat: 'Cat Trapping', snake: 'Snake Box', checklist: 'IPM Checklist' };
+    const names = {
+        attendance: 'Attendance',
+        insecticide: 'Insecticide Log',
+        gluebox: 'Glue Box',
+        efk: 'EFK Monitoring',
+        lizard: 'Lizard Trapping',
+        cat: 'Cat Trapping',
+        snake: 'Snake Box',
+        checklist: 'IPM Checklist'
+    };
     return names[t] || t;
 }
 
 function genForm(t) {
     const d = new Date().toISOString().split('T')[0];
     const tm = new Date().toTimeString().slice(0, 5);
-    return `<div class="row g-2 mb-3"><div class="col-md-6"><label class="form-label">Date</label><input type="date" id="fDate" class="form-control" value="${d}"></div><div class="col-md-6"><label class="form-label">Time</label><input type="time" id="fTime" class="form-control" value="${tm}"></div></div><div class="mb-3"><label class="form-label">Remarks</label><textarea id="fRem" class="form-control" rows="2"></textarea></div>`;
+    
+    const base = `<div class="row g-2 mb-3">
+        <div class="col-md-6"><label class="form-label">Date</label><input type="date" id="fDate" class="form-control" value="${d}"></div>
+        <div class="col-md-6"><label class="form-label">Time</label><input type="time" id="fTime" class="form-control" value="${tm}"></div>
+    </div>`;
+    
+    if (t === 'insecticide') {
+        return base + `
+            <div class="row g-2 mb-3">
+                <div class="col-md-4"><label class="form-label">Chemical</label>
+                    <select id="fChem" class="form-select"><option>Deltamethrin</option><option>Alphacypermethrin</option><option>Cypermethrin</option></select></div>
+                <div class="col-md-4"><label class="form-label">Qty (ml)</label><input type="number" id="fQty" class="form-control" value="50"></div>
+                <div class="col-md-4"><label class="form-label">Water (L)</label><input type="number" id="fWater" class="form-control" value="10"></div>
+            </div>
+            <h6>Areas Treated</h6>
+            <div id="insList" class="mb-2">
+                ${['Outside', 'Drain', 'Washroom', 'Office'].map(a => 
+                    `<div class="d-inline-block bg-light border rounded px-2 py-1 me-2 mb-2 ins-tag">
+                        <span>${a}</span> <i class="fas fa-times text-danger ms-1" onclick="this.parentElement.remove()" style="cursor:pointer"></i>
+                    </div>`).join('')}
+            </div>
+            <div class="input-group mb-3">
+                <input type="text" id="newArea" class="form-control" placeholder="Add location">
+                <button class="btn btn-outline-primary" type="button" onclick="addInsArea()">Add</button>
+            </div>
+            <div class="mb-3"><label class="form-label">Remarks</label><textarea id="fRem" class="form-control" rows="2"></textarea></div>`;
+    }
+    
+    if (t === 'gluebox') {
+        return base + `<h6>Stations</h6>
+            <table class="table table-sm table-bordered"><thead><tr><th>#</th><th>Location</th><th>Status</th><th>Count</th><th></th></tr></thead>
+            <tbody id="gbBody"></tbody></table>
+            <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addGb()"><i class="fas fa-plus"></i> Add</button>
+            <div class="mb-3"><label class="form-label">Remarks</label><textarea id="fRem" class="form-control" rows="2"></textarea></div>`;
+    }
+    
+    if (t === 'efk') {
+        return base + `<h6>Units</h6>
+            <table class="table table-sm table-bordered"><thead><tr><th>#</th><th>Location</th><th>Status</th><th>Fly</th><th>Mos</th><th>Bee</th><th></th></tr></thead>
+            <tbody id="efkBody"></tbody></table>
+            <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addEfk()"><i class="fas fa-plus"></i> Add</button>
+            <div class="mb-3"><label class="form-label">Remarks</label><textarea id="fRem" class="form-control" rows="2"></textarea></div>`;
+    }
+    
+    if (t === 'checklist') {
+        const items = ['Spray areas', 'Inspect EFKs', 'Inspect Glue Boxes', 'Inspect Bait Boxes', 'Check Chemicals', 'Inspect Snake Boxes', 'Attendance Check', 'Documentation'];
+        return `<div class="row g-2 mb-3">
+            <div class="col-md-4"><label class="form-label">Date</label><input type="date" id="fDate" class="form-control" value="${d}"></div>
+            <div class="col-md-4"><label class="form-label">Time In</label><input type="time" id="fIn" class="form-control" value="${tm}"></div>
+            <div class="col-md-4"><label class="form-label">Time Out</label><input type="time" id="fOut" class="form-control"></div>
+        </div>
+        <h6>Activities</h6>
+        <table class="table table-sm"><tbody>
+            ${items.map((it, i) => `<tr><td>${i+1}</td><td>${it}</td><td><select class="form-select form-select-sm fAct" data-item="${it}"><option value="done">Done</option><option value="pending">Pending</option><option value="na">N/A</option></select></td></tr>`).join('')}
+        </tbody></table>
+        <div class="mb-3"><label class="form-label">Remarks</label><textarea id="fRem" class="form-control" rows="2"></textarea></div>`;
+    }
+    
+    return base + `<h6>Entries</h6>
+        <table class="table table-sm table-bordered"><thead><tr><th>#</th><th>Location</th><th>Count</th><th>Status</th><th></th></tr></thead>
+        <tbody id="genBody"></tbody></table>
+        <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addGen()"><i class="fas fa-plus"></i> Add</button>
+        <div class="mb-3"><label class="form-label">Remarks</label><textarea id="fRem" class="form-control" rows="2"></textarea></div>`;
+}
+
+function addInsArea() {
+    const val = $('newArea').value.trim();
+    if(val) {
+        const div = document.createElement('div');
+        div.className = 'd-inline-block bg-light border rounded px-2 py-1 me-2 mb-2 ins-tag';
+        div.innerHTML = `<span>${val}</span> <i class="fas fa-times text-danger ms-1" onclick="this.parentElement.remove()" style="cursor:pointer"></i>`;
+        $('insList').appendChild(div);
+        $('newArea').value = '';
+    }
+}
+
+function addGb() {
+    rowCount++;
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${rowCount}</td>
+        <td><input type="text" class="form-control form-control-sm gb-loc" placeholder="Location"></td>
+        <td><select class="form-select form-select-sm gb-st"><option value="ok">OK</option><option value="damaged">Damaged</option></select></td>
+        <td><input type="number" class="form-control form-control-sm gb-cnt" value="0" min="0"></td>
+        <td><button class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`;
+    $('gbBody').appendChild(row);
+}
+
+function addEfk() {
+    rowCount++;
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${rowCount}</td>
+        <td><input type="text" class="form-control form-control-sm efk-loc" placeholder="Location"></td>
+        <td><select class="form-select form-select-sm efk-st"><option value="ok">OK</option><option value="fail">Fail</option></select></td>
+        <td><input type="number" class="form-control form-control-sm efk-fly" value="0" min="0"></td>
+        <td><input type="number" class="form-control form-control-sm efk-mos" value="0" min="0"></td>
+        <td><input type="number" class="form-control form-control-sm efk-bee" value="0" min="0"></td>
+        <td><button class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`;
+    $('efkBody').appendChild(row);
+}
+
+function addGen() {
+    rowCount++;
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${rowCount}</td>
+        <td><input type="text" class="form-control form-control-sm gen-loc" placeholder="Location"></td>
+        <td><input type="number" class="form-control form-control-sm gen-cnt" value="0" min="0"></td>
+        <td><select class="form-select form-select-sm gen-st"><option value="ok">OK</option><option value="bad">Bad</option></select></td>
+        <td><button class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`;
+    $('genBody').appendChild(row);
 }
 
 async function saveForm() {
-    const pid = $('selProject').value;
+    const pid = parseInt($('selProject').value);
     const date = $('fDate')?.value;
     if (!date) return alert('Enter date');
     
-    const data = {
-        formType: curForm, projectId: pid, userId: currentUser.id, date: date, status: 'submitted',
-        time: $('fTime')?.value, remarks: $('fRem')?.value
-    };
+    let data = { formType: curForm, projectId: pid, userId: currentUser.id, date, status: 'submitted' };
+    
+    if (curForm === 'insecticide') {
+        data.time = $('fTime').value;
+        data.chemical = $('fChem').value;
+        data.qty = $('fQty').value;
+        data.water = $('fWater').value;
+        data.areas = [...document.querySelectorAll('.ins-tag span')].map(s => s.textContent);
+        data.remarks = $('fRem').value;
+    } else if (curForm === 'gluebox') {
+        data.time = $('fTime').value;
+        data.stations = [];
+        document.querySelectorAll('#gbBody tr').forEach((r, i) => {
+            data.stations.push({ sr: i+1, loc: r.querySelector('.gb-loc')?.value, st: r.querySelector('.gb-st')?.value, cnt: parseInt(r.querySelector('.gb-cnt')?.value) || 0 });
+        });
+        data.remarks = $('fRem').value;
+    } else if (curForm === 'efk') {
+        data.time = $('fTime').value;
+        data.units = [];
+        document.querySelectorAll('#efkBody tr').forEach((r, i) => {
+            data.units.push({ sr: i+1, loc: r.querySelector('.efk-loc')?.value, st: r.querySelector('.efk-st')?.value, fly: parseInt(r.querySelector('.efk-fly')?.value) || 0, mos: parseInt(r.querySelector('.efk-mos')?.value) || 0, bee: parseInt(r.querySelector('.efk-bee')?.value) || 0 });
+        });
+        data.remarks = $('fRem').value;
+    } else if (curForm === 'checklist') {
+        data.timeIn = $('fIn').value;
+        data.timeOut = $('fOut').value;
+        data.activities = [];
+        document.querySelectorAll('.fAct').forEach(s => { data.activities.push({ item: s.dataset.item, st: s.value }); });
+        data.remarks = $('fRem').value;
+    } else {
+        data.time = $('fTime').value;
+        data.entries = [];
+        document.querySelectorAll('#genBody tr').forEach((r, i) => {
+            data.entries.push({ sr: i+1, loc: r.querySelector('.gen-loc')?.value, cnt: parseInt(r.querySelector('.gen-cnt')?.value) || 0, st: r.querySelector('.gen-st')?.value });
+        });
+        data.remarks = $('fRem').value;
+    }
     
     try {
         await dbAdd('records', data);
         bootstrap.Modal.getInstance($('formModal')).hide();
         toast('Record saved!');
         loadDash();
-    } catch (e) { alert('Error: ' + e.message); }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
 }
 
 // ============== ATTENDANCE ==============
 async function openAttModal() {
-    curProj = await dbGet('projects', $('selProject').value);
-    const gpsEnabled = curProj.gpsEnabled !== false;
+    curProj = await dbGet('projects', parseInt($('selProject').value));
+    const gpsEnabled = curProj?.gpsEnabled !== false;
     const d = new Date().toISOString().split('T')[0];
     const tm = new Date().toTimeString().slice(0, 5);
     
-    $('aDate').value = d; $('aIn').value = tm; $('aOut').value = ''; $('aWork').value = ''; $('aRem').value = ''; $('aVerified').value = 'false';
+    $('aDate').value = d;
+    $('aIn').value = tm;
+    $('aOut').value = '';
+    $('aWork').value = '';
+    $('aRem').value = '';
+    $('aVerified').value = 'false';
+    
     new bootstrap.Modal($('attModal')).show();
     
     if (gpsEnabled && curProj?.lat && curProj?.lng) {
-        $('gpsSection').classList.remove('hide'); $('gpsSkipMsg').style.display = 'none';
-        $('attForm').classList.add('hide'); $('attSaveBtn').disabled = true; $('retryBtn').classList.add('hide');
+        $('gpsSection').classList.remove('hide');
+        $('gpsSkipMsg').style.display = 'none';
+        $('attForm').classList.add('hide');
+        $('attSaveBtn').disabled = true;
+        $('retryBtn').classList.add('hide');
         $('locStatus').className = 'loc-status wait';
         $('locStatus').innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i><div><strong>Checking location...</strong></div>';
-        setTimeout(() => { if (attMap) attMap.remove(); attMap = L.map('attMap').setView([curProj.lat, curProj.lng], 16); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(attMap); L.marker([curProj.lat, curProj.lng]).addTo(attMap); L.circle([curProj.lat, curProj.lng], { radius: curProj.radius || 50, color: '#004080', fillOpacity: 0.1 }).addTo(attMap); checkLoc(); }, 500);
+        
+        setTimeout(() => {
+            if (attMap) attMap.remove();
+            attMap = L.map('attMap').setView([curProj.lat, curProj.lng], 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(attMap);
+            L.marker([curProj.lat, curProj.lng]).addTo(attMap).bindPopup(curProj.name);
+            L.circle([curProj.lat, curProj.lng], { radius: curProj.radius || 50, color: '#004080', fillOpacity: 0.1 }).addTo(attMap);
+            checkLoc();
+        }, 500);
     } else {
-        $('gpsSection').classList.add('hide'); $('gpsSkipMsg').style.display = 'block';
-        $('attForm').classList.remove('hide'); $('attSaveBtn').disabled = false;
-        $('aVerified').value = 'skipped'; $('aLat').value = 0; $('aLng').value = 0; $('aDist').value = 0;
+        $('gpsSection').classList.add('hide');
+        $('gpsSkipMsg').style.display = 'block';
+        $('attForm').classList.remove('hide');
+        $('attSaveBtn').disabled = false;
+        $('aVerified').value = 'skipped';
+        $('aLat').value = 0;
+        $('aLng').value = 0;
+        $('aDist').value = 0;
     }
 }
 
 function checkLoc() {
     $('retryBtn').classList.add('hide');
     if (!navigator.geolocation) return locErr('Geolocation not supported');
+    
     $('locStatus').className = 'loc-status wait';
     $('locStatus').innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i><div><strong>Getting location...</strong></div>';
-    navigator.geolocation.getCurrentPosition(pos => {
-        const lat = pos.coords.latitude, lng = pos.coords.longitude;
-        const dist = getDist(lat, lng, curProj.lat, curProj.lng);
-        const radius = curProj.radius || 50;
-        $('aLat').value = lat; $('aLng').value = lng; $('aDist').value = Math.round(dist);
-        L.marker([lat, lng]).addTo(attMap); attMap.fitBounds([[lat, lng], [curProj.lat, curProj.lng]], { padding: [30, 30] });
-        if (dist <= radius) {
-            $('locStatus').className = 'loc-status ok';
-            $('locStatus').innerHTML = `<i class="fas fa-check-circle text-success"></i><div><strong>Location Verified!</strong><br><small>${Math.round(dist)}m from site</small></div>`;
-            $('aVerified').value = 'true'; $('attSaveBtn').disabled = false; $('attForm').classList.remove('hide');
-        } else {
-            $('locStatus').className = 'loc-status no';
-            $('locStatus').innerHTML = `<i class="fas fa-times-circle text-danger"></i><div><strong>Too Far!</strong><br><small>${Math.round(dist)}m away</small></div>`;
-            $('aVerified').value = 'false'; $('attSaveBtn').disabled = true; $('retryBtn').classList.remove('hide');
-        }
-    }, err => locErr(err.message), { enableHighAccuracy: true, timeout: 10000 });
+    
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const lat = pos.coords.latitude, lng = pos.coords.longitude;
+            const dist = getDist(lat, lng, curProj.lat, curProj.lng);
+            const radius = curProj.radius || 50;
+            
+            $('aLat').value = lat;
+            $('aLng').value = lng;
+            $('aDist').value = Math.round(dist);
+            
+            L.marker([lat, lng], { icon: L.divIcon({ html: '<i class="fas fa-user-circle" style="color:#28a745;font-size:24px"></i>', iconSize: [24, 24], className: '' }) }).addTo(attMap).bindPopup('You');
+            attMap.fitBounds([[lat, lng], [curProj.lat, curProj.lng]], { padding: [30, 30] });
+            
+            if (dist <= radius) {
+                $('locStatus').className = 'loc-status ok';
+                $('locStatus').innerHTML = `<i class="fas fa-check-circle text-success"></i><div><strong>Verified!</strong><br><small>${Math.round(dist)}m from site</small></div>`;
+                $('aVerified').value = 'true';
+                $('attSaveBtn').disabled = false;
+                $('attForm').classList.remove('hide');
+            } else {
+                $('locStatus').className = 'loc-status no';
+                $('locStatus').innerHTML = `<i class="fas fa-times-circle text-danger"></i><div><strong>Too Far!</strong><br><small>${Math.round(dist)}m away</small></div>`;
+                $('aVerified').value = 'false';
+                $('attSaveBtn').disabled = true;
+                $('retryBtn').classList.remove('hide');
+            }
+        },
+        err => locErr(err.message),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
 }
 
-function locErr(msg) { $('locStatus').className = 'loc-status no'; $('locStatus').innerHTML = `<i class="fas fa-exclamation-triangle text-danger"></i><div><strong>Error</strong><br><small>${msg}</small></div>`; $('retryBtn').classList.remove('hide'); }
-function getDist(lat1, lon1, lat2, lon2) { const R = 6371000; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180; const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2; return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); }
+function locErr(msg) {
+    $('locStatus').className = 'loc-status no';
+    $('locStatus').innerHTML = `<i class="fas fa-exclamation-triangle text-danger"></i><div><strong>Error</strong><br><small>${msg}</small></div>`;
+    $('retryBtn').classList.remove('hide');
+}
+
+function getDist(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
 
 async function saveAtt() {
-    const data = { formType: 'attendance', projectId: curProj.id, userId: currentUser.id, date: $('aDate').value, timeIn: $('aIn').value, timeOut: $('aOut').value, work: $('aWork').value, remarks: $('aRem').value, location: { lat: parseFloat($('aLat').value), lng: parseFloat($('aLng').value), dist: parseInt($('aDist').value), verified: $('aVerified').value === 'true', skipped: $('aVerified').value === 'skipped' }, status: 'submitted' };
-    try { await dbAdd('records', data); bootstrap.Modal.getInstance($('attModal')).hide(); toast('Attendance saved!'); loadDash(); } catch (e) { alert('Error: ' + e.message); }
+    const data = {
+        formType: 'attendance',
+        projectId: curProj.id,
+        userId: currentUser.id,
+        date: $('aDate').value,
+        timeIn: $('aIn').value,
+        timeOut: $('aOut').value,
+        work: $('aWork').value,
+        remarks: $('aRem').value,
+        location: { lat: parseFloat($('aLat').value), lng: parseFloat($('aLng').value), dist: parseInt($('aDist').value), verified: $('aVerified').value === 'true', skipped: $('aVerified').value === 'skipped' },
+        status: 'submitted'
+    };
+    
+    try {
+        await dbAdd('records', data);
+        bootstrap.Modal.getInstance($('attModal')).hide();
+        toast('Attendance saved!');
+        loadDash();
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
 }
 
 // ============== RECORDS ==============
@@ -1453,6 +1894,7 @@ async function loadRecords() {
     if (from) list = list.filter(r => r.date >= from);
     if (to) list = list.filter(r => r.date <= to);
     if (type) list = list.filter(r => r.formType === type);
+    
     list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     
     const types = [...new Set(rec.map(r => r.formType))];
@@ -1461,26 +1903,95 @@ async function loadRecords() {
     $('recBody').innerHTML = list.map(r => {
         const p = prj.find(x => x.id === r.projectId);
         const u = users.find(x => x.id === r.userId);
-        return `<tr><td>${formatDate(r.date)}</td><td>${p?.name || '-'}</td><td><span class="badge bg-primary">${formName(r.formType)}</span></td><td>${u?.name || '-'}</td><td><button class="btn btn-sm btn-outline-primary" onclick="viewRec('${r.id}')"><i class="fas fa-eye"></i></button>${currentUser.role === 'admin' ? `<button class="btn btn-sm btn-outline-danger" onclick="delRec('${r.id}')"><i class="fas fa-trash"></i></button>` : ''}</td></tr>`;
+        let locBadge = '';
+        if(r.formType === 'attendance') {
+            if(r.location?.verified) locBadge = '<i class="fas fa-map-marker-alt text-success ms-1"></i>';
+            else if(r.location?.skipped) locBadge = '<i class="fas fa-ban text-secondary ms-1"></i>';
+        }
+        return `<tr>
+            <td>${formatDate(r.date)}</td>
+            <td>${p?.name || '-'}</td>
+            <td><span class="badge bg-primary">${formName(r.formType)}</span>${locBadge}</td>
+            <td>${u?.name || '-'}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="viewRec(${r.id})"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-sm btn-outline-success" onclick="viewRec(${r.id}, true)"><i class="fas fa-print"></i></button>
+                ${currentUser.role === 'admin' ? `<button class="btn btn-sm btn-outline-danger" onclick="delRec(${r.id})"><i class="fas fa-trash"></i></button>` : ''}
+            </td>
+        </tr>`;
     }).join('') || '<tr><td colspan="5" class="text-center text-muted">No records</td></tr>';
 }
 
-async function viewRec(id) {
+async function viewRec(id, doPrint = false) {
     const r = await dbGet('records', id);
     const p = await dbGet('projects', r.projectId);
     const u = await dbGet('users', r.userId);
-    $('viewBody').innerHTML = `<div class="report"><div class="report-head"><div><h3>${COMPANY.name}</h3></div></div><div class="report-body"><div class="info-grid"><div class="info-item"><label>Project</label><span>${p?.name || '-'}</span></div><div class="info-item"><label>Date</label><span>${formatDate(r.date)}</span></div><div class="info-item"><label>PCO</label><span>${u?.name || '-'}</span></div><div class="info-item"><label>Type</label><span>${formName(r.formType)}</span></div></div>${r.remarks ? `<div class="bg-warning bg-opacity-25 p-3 rounded"><strong>Remarks:</strong> ${r.remarks}</div>` : ''}</div></div>`;
+    $('viewBody').innerHTML = genReport(r, p, u);
     new bootstrap.Modal($('viewModal')).show();
+    if (doPrint) setTimeout(() => window.print(), 500);
 }
 
-async function delRec(id) { if (confirm('Delete record?')) { await dbDel('records', id); toast('Deleted'); loadRecords(); } }
+async function delRec(id) {
+    if (confirm('Delete this record?')) {
+        await dbDel('records', id);
+        toast('Deleted');
+        loadRecords();
+    }
+}
 
-function formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('en-GB'); }
-function formatDateTime(ts) { if (!ts) return '-'; return new Date(ts).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+function genReport(r, p, u) {
+    let locInfo = '';
+    if(r.location?.verified) locInfo = `<div class="d-flex align-items-center gap-2 mb-3 p-2 bg-success bg-opacity-10 rounded"><i class="fas fa-map-marker-alt text-success"></i><small><strong>Verified</strong> - ${r.location.dist}m</small></div>`;
+    else if(r.location?.skipped) locInfo = `<div class="d-flex align-items-center gap-2 mb-3 p-2 bg-secondary bg-opacity-10 rounded"><i class="fas fa-info-circle text-secondary"></i><small><strong>GPS Skipped</strong></small></div>`;
+
+    let content = '';
+    if (r.formType === 'attendance') {
+        content = `<div class="summary-grid" style="grid-template-columns:1fr 1fr">
+            <div class="summary-box"><div class="num">${r.timeIn || '-'}</div><div class="lbl">In</div></div>
+            <div class="summary-box"><div class="num">${r.timeOut || '-'}</div><div class="lbl">Out</div></div>
+        </div><div class="bg-light p-3 rounded mb-3"><strong>Work:</strong><br>${r.work || 'N/A'}</div>`;
+    } else if (r.formType === 'insecticide') {
+        content = `<div class="summary-grid">
+            <div class="summary-box"><div class="num">${r.chemical}</div><div class="lbl">Chemical</div></div>
+            <div class="summary-box"><div class="num">${r.qty}ml</div><div class="lbl">Qty</div></div>
+            <div class="summary-box"><div class="num">${r.water}L</div><div class="lbl">Water</div></div>
+            <div class="summary-box"><div class="num">${(r.areas||[]).length}</div><div class="lbl">Areas</div></div>
+        </div><div class="p-3 bg-light rounded mb-3"><strong>Areas:</strong><br>${(r.areas||[]).join(', ')}</div>`;
+    } else if (r.formType === 'gluebox') {
+        content = `<table class="table table-sm table-bordered"><thead><tr><th>#</th><th>Location</th><th>Status</th><th>Count</th></tr></thead>
+        <tbody>${(r.stations||[]).map(s => `<tr><td>${s.sr}</td><td>${s.loc}</td><td class="${s.st==='ok'?'text-success':'text-danger'}">${s.st?.toUpperCase()}</td><td>${s.cnt}</td></tr>`).join('')}</tbody></table>`;
+    } else if (r.formType === 'efk') {
+        content = `<table class="table table-sm table-bordered"><thead><tr><th>#</th><th>Loc</th><th>Status</th><th>Fly</th><th>Mos</th><th>Bee</th></tr></thead>
+        <tbody>${(r.units||[]).map(x => `<tr><td>${x.sr}</td><td>${x.loc}</td><td class="${x.st==='ok'?'text-success':'text-danger'}">${x.st?.toUpperCase()}</td><td>${x.fly}</td><td>${x.mos}</td><td>${x.bee}</td></tr>`).join('')}</tbody></table>`;
+    } else if (r.formType === 'checklist') {
+        content = `<ul class="list-group mb-3">${(r.activities||[]).map((a,i) => `<li class="list-group-item d-flex justify-content-between"><span>${i+1}. ${a.item}</span><span class="badge ${a.st==='done'?'bg-success':a.st==='pending'?'bg-warning':'bg-secondary'}">${a.st}</span></li>`).join('')}</ul>`;
+    } else {
+        content = `<table class="table table-sm table-bordered"><thead><tr><th>#</th><th>Loc</th><th>Count</th><th>Status</th></tr></thead>
+        <tbody>${(r.entries||[]).map(e => `<tr><td>${e.sr}</td><td>${e.loc}</td><td>${e.cnt}</td><td class="${e.st==='ok'?'text-success':'text-danger'}">${e.st?.toUpperCase()}</td></tr>`).join('')}</tbody></table>`;
+    }
+    
+    return `<div class="report">
+        <div class="report-head"><div><h3>${COMPANY.name}</h3><small>IPM Services</small></div><div class="text-end"><span class="badge bg-light text-dark">A2Z/F</span><br><small>ID: ${String(r.id).padStart(5,'0')}</small></div></div>
+        <div class="report-title"><h4><i class="fas fa-file-alt me-2"></i>${formName(r.formType)} Report</h4></div>
+        <div class="report-body">
+            ${locInfo}
+            <div class="info-grid">
+                <div class="info-item"><label>Project</label><span>${p?.name||'-'}</span></div>
+                <div class="info-item"><label>Client</label><span>${p?.client||'-'}</span></div>
+                <div class="info-item"><label>Date</label><span>${formatDate(r.date)}</span></div>
+                <div class="info-item"><label>PCO</label><span>${u?.name||'-'}</span></div>
+            </div>
+            ${content}
+            ${r.remarks ? `<div class="bg-warning bg-opacity-25 p-3 rounded"><strong>Remarks:</strong> ${r.remarks}</div>` : ''}
+        </div>
+    </div>`;
+}
+
+function formatDate(d) { return d ? new Date(d).toLocaleDateString('en-GB') : '-'; }
+function formatDateTime(ts) { return ts ? new Date(ts).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '-'; }
 
 // ============== START ==============
 init();
-console.log('✅ A2Z IPM System - Firebase Connected!');
 </script>
 </body>
 </html>
