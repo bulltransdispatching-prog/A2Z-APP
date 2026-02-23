@@ -13,3 +13,4 @@ const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app); 
 
 export default app;
+export const COMPANY = "A2Z IPM";
