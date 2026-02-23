@@ -121,3 +121,12 @@ export interface Remark {
 export type Page = 'dashboard' | 'dataentry' | 'records' | 'staff' | 'clients' | 'projects' | 'remarks' | 'settings' | 'reports' | 'formbuilder';
 
 export type FormType = 'attendance' | 'insecticide' | 'gluebox' | 'efk' | 'lizard' | 'cat' | 'snake' | 'checklist' | 'baitstation' | string;
+// This is the actual component the app is looking for
+export function InventoryPage() {
+  return (
+    <div style={{ padding: '20px', textAlign: 'center' }}>
+      <h1>Inventory Page</h1>
+      <p>The UI code will be added here soon!</p>
+    </div>
+  );
+}
