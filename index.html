@@ -1,0 +1,2300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A2Z IPM – Integrated Pest Management System</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<style>
+:root{--p:#003d7a;--ps:#002b55;--g:#28a745;--r:#dc3545;--o:#fd7e14;--pu:#6f42c1;--y:#ffc107}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
+body{background:#f0f2f5;color:#333}
+.hide{display:none!important}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#f1f1f1;border-radius:3px}
+::-webkit-scrollbar-thumb{background:#c1c1c1;border-radius:3px}
+
+/* ── Toast ── */
+#toastBox{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:300px}
+.toast{background:#fff;border-radius:12px;padding:12px 16px;box-shadow:0 6px 24px rgba(0,0,0,.15);display:flex;align-items:center;gap:10px;animation:slideIn .3s ease-out;cursor:pointer;border-left:4px solid #ccc}
+.toast.success{border-left-color:var(--g)}.toast.error{border-left-color:var(--r)}.toast.info{border-left-color:var(--p)}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── Online Badge ── */
+#onlineBadge{position:fixed;bottom:16px;right:16px;z-index:9998;padding:6px 14px;border-radius:20px;font-size:.75rem;font-weight:700;display:flex;align-items:center;gap:6px}
+#onlineBadge.online{background:#d4edda;color:#155724}
+#onlineBadge.offline{background:#f8d7da;color:#721c24}
+.dot{width:8px;height:8px;border-radius:50%;animation:pulse 1.5s infinite}
+.online .dot{background:var(--g)}.offline .dot{background:var(--r)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── LOGIN ── */
+#loginPage{min-height:100vh;background:linear-gradient(135deg,#003d7a,#001a3d);display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{background:#fff;border-radius:20px;padding:40px 32px;width:100%;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+.login-logo{width:64px;height:64px;background:linear-gradient(135deg,var(--p),var(--ps));border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 8px 24px rgba(0,61,122,.4)}
+.login-logo i{font-size:1.8rem;color:#fff}
+.login-box h2{text-align:center;color:var(--p);font-weight:900;font-size:1.6rem;margin-bottom:4px}
+.login-box .sub{text-align:center;color:#999;margin-bottom:28px;font-size:.9rem}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-weight:700;font-size:.8rem;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.form-control{width:100%;border:1.5px solid #e0e0e0;border-radius:12px;padding:12px 16px;font-size:.95rem;background:#f8f9fa;transition:border .2s,box-shadow .2s;outline:none}
+.form-control:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(0,61,122,.12);background:#fff}
+.input-group{position:relative}
+.input-group .form-control{padding-right:44px}
+.input-group-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#aaa;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px}
+.input-group-btn:hover{background:#f0f0f0;color:#666}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .2s;text-decoration:none}
+.btn-primary{background:linear-gradient(135deg,var(--p),var(--ps));color:#fff;box-shadow:0 4px 14px rgba(0,61,122,.3)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,61,122,.4)}
+.btn-success{background:var(--g);color:#fff}
+.btn-success:hover{background:#218838}
+.btn-danger{background:var(--r);color:#fff}
+.btn-danger:hover{background:#c82333}
+.btn-warning{background:var(--y);color:#333}
+.btn-orange{background:var(--o);color:#fff}
+.btn-orange:hover{background:#e8650a}
+.btn-purple{background:var(--pu);color:#fff}
+.btn-sm{padding:7px 12px;font-size:.78rem;border-radius:8px}
+.btn-xs{padding:5px 9px;font-size:.72rem;border-radius:6px}
+.btn-outline{background:#fff}
+.btn-outline-primary{border-color:var(--p);color:var(--p)}
+.btn-outline-primary:hover{background:var(--p);color:#fff}
+.btn-outline-success{border-color:var(--g);color:var(--g)}
+.btn-outline-success:hover{background:var(--g);color:#fff}
+.btn-outline-danger{border-color:var(--r);color:var(--r)}
+.btn-outline-danger:hover{background:var(--r);color:#fff}
+.btn-outline-orange{border-color:var(--o);color:var(--o)}
+.btn-outline-orange:hover{background:var(--o);color:#fff}
+.btn-outline-purple{border-color:var(--pu);color:var(--pu)}
+.btn-outline-purple:hover{background:var(--pu);color:#fff}
+.btn-full{width:100%}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+.alert{padding:12px 16px;border-radius:10px;font-size:.88rem;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.alert-danger{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
+.alert-info{background:#cce5ff;color:#004085;border:1px solid #b8daff}
+.alert-success{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
+.alert-warning{background:#fff3cd;color:#856404;border:1px solid #ffeeba}
+
+/* ── APP LAYOUT ── */
+#mainApp{display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+#sidebar{width:252px;background:linear-gradient(180deg,#003d7a 0%,#001a3d 100%);color:#fff;position:fixed;height:100vh;z-index:100;display:flex;flex-direction:column;transition:transform .3s;overflow:hidden}
+#sidebar.closed{transform:translateX(-252px)}
+.sidebar-header{padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.sidebar-logo{width:40px;height:40px;background:rgba(255,255,255,.1);border-radius:12px;display:flex;align-items:center;justify-content:center}
+.sidebar-header h4{margin:0;font-size:1.1rem;font-weight:900;letter-spacing:.3px}
+.sidebar-header small{color:rgba(255,255,255,.4);font-size:.7rem}
+.nav-menu{flex:1;overflow-y:auto;padding:8px 0}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 20px;color:rgba(255,255,255,.65);cursor:pointer;border-left:3px solid transparent;transition:all .2s;font-size:.88rem;font-weight:600;text-decoration:none}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff;border-left-color:var(--y)}
+.nav-item i{width:20px;text-align:center;font-size:.9rem}
+.sidebar-footer{padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:.7rem;color:rgba(255,255,255,.3);text-align:center;flex-shrink:0}
+
+/* ── MAIN CONTENT ── */
+#mainContent{flex:1;margin-left:252px;display:flex;flex-direction:column;min-height:100vh;transition:margin .3s}
+#mainContent.full{margin-left:0}
+
+/* ── TOPBAR ── */
+#topbar{background:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,.06);position:sticky;top:0;z-index:50;border-bottom:1px solid #f0f0f0}
+#menuToggle{background:none;border:none;font-size:1.3rem;color:var(--p);cursor:pointer;padding:6px;border-radius:8px}
+#menuToggle:hover{background:#f0f4ff}
+.user-info-bar{display:flex;align-items:center;gap:12px}
+.user-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--ps));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem;box-shadow:0 3px 10px rgba(0,61,122,.3)}
+.user-name{font-weight:700;font-size:.9rem;color:#333;line-height:1.2}
+.user-role{font-size:.72rem;color:#999}
+.logout-btn{padding:6px 14px;border:1.5px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer;font-size:.78rem;font-weight:700;color:#666;display:flex;align-items:center;gap:6px}
+.logout-btn:hover{background:#f8f9fa;color:var(--r);border-color:var(--r)}
+
+/* ── PAGE CONTENT ── */
+.page-content{padding:24px;flex:1}
+.page-title{font-size:1.3rem;font-weight:900;color:#222;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.page-title i{color:var(--p)}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:16px;box-shadow:0 2px 16px rgba(0,0,0,.06);margin-bottom:20px;overflow:hidden}
+.card-header{background:var(--p);color:#fff;padding:14px 20px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card-header.green{background:var(--g)}.card-header.orange{background:var(--o)}.card-header.purple{background:var(--pu)}.card-header.gray{background:#495057}
+.card-body{padding:20px}
+
+/* ── STAT CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:22px}
+.stat-card{background:#fff;border-radius:14px;padding:20px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 12px rgba(0,0,0,.05);border:1px solid #f5f5f5}
+.stat-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff;flex-shrink:0}
+.stat-icon.blue{background:linear-gradient(135deg,#667eea,var(--p))}
+.stat-icon.green{background:linear-gradient(135deg,#11998e,#38ef7d)}
+.stat-icon.orange{background:linear-gradient(135deg,var(--o),#dc3545)}
+.stat-icon.purple{background:linear-gradient(135deg,#4facfe,#00f2fe)}
+.stat-icon.red{background:linear-gradient(135deg,#f5576c,#f093fb)}
+.stat-icon.gray{background:linear-gradient(135deg,#96adb6,#607d8b)}
+.stat-val{font-size:1.8rem;font-weight:900;color:#222;line-height:1}
+.stat-lbl{font-size:.75rem;color:#999;margin-top:4px}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.875rem}
+thead tr{background:#f8f9fa;border-bottom:2px solid #e9ecef}
+th{padding:12px 16px;font-weight:700;color:#555;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;text-align:left}
+td{padding:11px 16px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#f8fbff}
+.badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.badge-green{background:#d4edda;color:#155724}.badge-red{background:#f8d7da;color:#721c24}
+.badge-blue{background:#d0e7ff;color:#004080}.badge-orange{background:#ffe8d4;color:#7d3f00}
+.badge-purple{background:#e9d8ff;color:#4a1dab}.badge-gray{background:#e9ecef;color:#495057}
+.badge-yellow{background:#fff3cd;color:#664d03}
+
+/* ── FORM CONTROLS ── */
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:14px}
+.form-group-i label{display:block;font-size:.75rem;font-weight:700;color:#666;text-transform:uppercase;margin-bottom:5px}
+.form-group-i input,.form-group-i select,.form-group-i textarea{width:100%;border:1.5px solid #e0e0e0;border-radius:10px;padding:10px 14px;font-size:.88rem;background:#fafafa;outline:none;transition:border .2s,box-shadow .2s}
+.form-group-i input:focus,.form-group-i select:focus,.form-group-i textarea:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(0,61,122,.1);background:#fff}
+.form-group-i textarea{resize:vertical;min-height:70px}
+.form-check{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.88rem;font-weight:600;color:#555}
+.form-check input[type=checkbox]{width:16px;height:16px;accent-color:var(--p);cursor:pointer}
+.tag{display:inline-flex;align-items:center;gap:6px;background:#e8f0fe;color:var(--p);padding:4px 10px;border-radius:20px;font-size:.78rem;font-weight:700}
+.tag-remove{background:none;border:none;cursor:pointer;color:var(--p);font-size:1rem;line-height:1;padding:0;opacity:.6}
+.tag-remove:hover{opacity:1;color:var(--r)}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;display:flex;align-items:center;justify-content:center;padding:12px;opacity:0;transition:opacity .25s}
+.modal-overlay.show{opacity:1}
+.modal-box{background:#fff;border-radius:20px;width:100%;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.25);transform:scale(.95);transition:transform .25s}
+.modal-overlay.show .modal-box{transform:scale(1)}
+.modal-sm{max-width:420px}.modal-md{max-width:560px}.modal-lg{max-width:760px}.modal-xl{max-width:960px}.modal-full{max-width:1100px}
+.modal-header{padding:18px 22px;border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-header.blue{background:var(--p)}.modal-header.green{background:var(--g)}.modal-header.orange{background:var(--o)}
+.modal-header.purple{background:var(--pu)}.modal-header.yellow{background:var(--y)}.modal-header.gray{background:#495057}
+.modal-header h5{color:#fff;font-weight:700;font-size:1.05rem;margin:0}
+.modal-close{background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.modal-close:hover{background:rgba(255,255,255,.3)}
+.modal-body{padding:22px;overflow-y:auto;flex:1}
+.modal-footer{padding:16px 22px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;gap:10px;flex-shrink:0}
+
+/* ── FORMS PAGE ── */
+.forms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+.form-card{background:#fff;border-radius:16px;padding:22px;text-align:center;cursor:pointer;transition:all .22s;border:2px solid transparent;box-shadow:0 2px 12px rgba(0,0,0,.05)}
+.form-card:hover{border-color:var(--p);transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,61,122,.15)}
+.form-card i{font-size:2.2rem;color:var(--p);margin-bottom:10px;display:block}
+.form-card.custom-card i{color:var(--pu)}
+.form-card h6{font-weight:700;font-size:.88rem;color:#333;margin:0 0 4px}
+.form-card small{font-size:.72rem;color:#aaa}
+
+/* ── GPS ── */
+.loc-box{padding:16px 20px;border-radius:12px;display:flex;align-items:center;gap:14px;margin-bottom:14px;border:2px solid}
+.loc-box.wait{background:#e8f4ff;border-color:#74b9ff}.loc-box.ok{background:#d4edda;border-color:var(--g)}.loc-box.fail{background:#f8d7da;border-color:var(--r)}
+.loc-box i{font-size:1.6rem}
+
+/* ── SIGNATURE PAD ── */
+.sig-wrap{border:2px dashed #ccc;border-radius:12px;overflow:hidden;background:#fafafa;cursor:crosshair}
+.sig-wrap canvas{width:100%;display:block;touch-action:none}
+.sig-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.sig-label{font-size:.75rem;font-weight:700;color:#666;text-transform:uppercase}
+.sig-clear{font-size:.72rem;color:var(--r);cursor:pointer;background:none;border:none;font-weight:700}
+.sig-clear:hover{text-decoration:underline}
+
+/* ── REPORT (printable) ── */
+.report-wrap{background:#fff;max-width:820px;margin:0 auto;font-size:.88rem}
+.report-hdr{background:var(--p);color:#fff;padding:22px 28px;border-radius:0}
+.report-hdr h2{font-size:1.2rem;font-weight:900;margin:0 0 3px}
+.report-hdr small{color:rgba(255,255,255,.65)}
+.report-ref{background:rgba(255,255,255,.12);padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:700;white-space:nowrap}
+.report-title-bar{background:#e8f0fe;border-left:4px solid var(--p);padding:12px 22px;display:flex;justify-content:space-between;align-items:center}
+.report-title-bar h4{font-size:1rem;font-weight:900;color:var(--p);margin:0}
+.report-body{padding:22px 28px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#f8f9fa;padding:16px;border-radius:12px;margin-bottom:18px;border-left:4px solid var(--p)}
+.info-grid.four{grid-template-columns:repeat(4,1fr)}
+.info-item label{font-size:.7rem;text-transform:uppercase;color:#999;font-weight:700;display:block;margin-bottom:2px}
+.info-item span{font-weight:700;color:#333;font-size:.88rem}
+.sum-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:18px}
+.sum-card{background:#f8f9fa;padding:14px;text-align:center;border-radius:12px;border-left:3px solid var(--p)}
+.sum-val{font-size:1.6rem;font-weight:900;color:var(--p)}
+.sum-lbl{font-size:.72rem;color:#999}
+.sig-block{border-top:2px solid #e0e0e0;margin-top:4px;padding-top:6px}
+.sig-block p{font-size:.72rem;color:#aaa;text-align:center}
+.rpt-footer{margin-top:20px;padding-top:12px;border-top:1px solid #e9ecef;display:flex;justify-content:space-between;font-size:.7rem;color:#ccc}
+
+/* ── TABS ── */
+.tab-bar{display:flex;background:#f0f2f5;border-radius:12px;padding:4px;gap:2px;overflow-x:auto;margin-bottom:18px;flex-shrink:0}
+.tab-btn{padding:9px 14px;border:none;background:transparent;border-radius:9px;cursor:pointer;font-size:.8rem;font-weight:700;color:#888;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:6px}
+.tab-btn.active{background:#fff;color:var(--p);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.tab-btn:hover:not(.active){color:#555}
+.tab-pane{display:none}.tab-pane.active{display:block}
+
+/* ── CHARTS ── */
+.chart-box{background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,.05);margin-bottom:16px}
+.chart-box h5{font-weight:700;color:#555;margin-bottom:14px;font-size:.9rem;display:flex;align-items:center;gap:7px}
+.chart-box h5 i{color:var(--p)}
+
+/* ── FORM BUILDER ── */
+.field-card{border:1.5px solid #e9ecef;border-radius:12px;padding:14px;background:#fafafa;margin-bottom:10px}
+.field-type-badge{display:inline-flex;background:#e8f0fe;color:var(--p);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;margin-bottom:8px}
+.field-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.field-type-btn{padding:7px 6px;border:1.5px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer;font-size:.72rem;font-weight:700;color:#666;transition:all .15s;text-align:center}
+.field-type-btn.sel{border-color:var(--pu);background:#f3e8ff;color:var(--pu)}
+.field-type-btn:hover:not(.sel){border-color:#bbb;background:#f8f8f8}
+.icon-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.icon-btn{width:36px;height:36px;border:1.5px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;color:#666;transition:all .15s}
+.icon-btn.sel{border-color:var(--pu);background:var(--pu);color:#fff}
+
+/* ── INVENTORY ── */
+.low-stock-bar{background:#fff5f5;border:2px solid #f5c6cb;border-radius:14px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:flex-start;gap:14px}
+.low-stock-bar i{font-size:1.6rem;color:var(--r);margin-top:2px;flex-shrink:0}
+
+/* ── OVERLAY ── */
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99}
+#overlay.show{display:block}
+
+/* ── LOADING ── */
+#loadingScreen{position:fixed;inset:0;background:linear-gradient(135deg,#003d7a,#001a3d);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9000;color:#fff}
+#loadingScreen i{font-size:4rem;margin-bottom:16px;animation:bounce .8s infinite alternate}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-12px)}}
+#loadingScreen h2{font-size:1.8rem;font-weight:900;margin-bottom:6px}
+#loadingScreen p{color:rgba(255,255,255,.5);display:flex;align-items:center;gap:8px}
+
+@media(max-width:768px){
+  #sidebar{transform:translateX(-252px)}
+  #sidebar.open{transform:translateX(0)}
+  #mainContent{margin-left:0!important}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .info-grid.four{grid-template-columns:1fr 1fr}
+  .form-row{grid-template-columns:1fr}
+  .forms-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+}
+
+@media print{
+  #sidebar,#topbar,#overlay,.no-print,#toastBox,#onlineBadge,.modal-overlay{display:none!important}
+  #mainContent{margin-left:0!important}
+  .page-content{padding:0!important}
+  body{background:#fff!important}
+  .report-hdr{background:var(--p)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{margin:12mm 15mm;size:A4}
+  table{page-break-inside:avoid}
+  .card{box-shadow:none;border:1px solid #eee}
+}
+</style>
+</head>
+<body>
+
+<div id="toastBox"></div>
+<div id="onlineBadge" class="online"><div class="dot"></div><span id="onlineText">Online</span></div>
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<!-- LOADING -->
+<div id="loadingScreen">
+  <i class="fas fa-bug"></i>
+  <h2>A2Z IPM System</h2>
+  <p><i class="fas fa-spinner fa-spin"></i>Connecting to server...</p>
+</div>
+
+<!-- LOGIN -->
+<div id="loginPage" class="hide">
+  <div class="login-box">
+    <div class="login-logo"><i class="fas fa-bug"></i></div>
+    <h2>A2Z IPM</h2>
+    <p class="sub">Integrated Pest Management System</p>
+    <div id="loginError" class="alert alert-danger hide"></div>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input type="text" id="loginUser" class="form-control" autocomplete="username" placeholder="Enter username">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <div class="input-group">
+        <input type="password" id="loginPass" class="form-control" autocomplete="current-password" placeholder="Enter password">
+        <button class="input-group-btn" onclick="togglePass()"><i class="fas fa-eye" id="eyeIcon"></i></button>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" id="loginBtn" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i>Login</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" class="hide">
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><i class="fas fa-bug"></i></div>
+      <div><h4>A2Z IPM</h4><small>Management System</small></div>
+    </div>
+    <div class="nav-menu" id="navMenu"></div>
+    <div class="sidebar-footer" id="sidebarFooter"></div>
+  </nav>
+
+  <!-- Main Content -->
+  <div id="mainContent">
+    <div id="topbar">
+      <button id="menuToggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+      <div class="user-info-bar">
+        <div class="d-sm-block">
+          <div class="user-name" id="topUserName"></div>
+          <div class="user-role" id="topUserRole"></div>
+        </div>
+        <div class="user-avatar" id="topUserAvatar"></div>
+        <button class="logout-btn" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i>Logout</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div id="page-dashboard"></div>
+      <div id="page-dataentry" class="hide"></div>
+      <div id="page-records" class="hide"></div>
+      <div id="page-reports" class="hide"></div>
+      <div id="page-inventory" class="hide"></div>
+      <div id="page-formbuilder" class="hide"></div>
+      <div id="page-staff" class="hide"></div>
+      <div id="page-clients" class="hide"></div>
+      <div id="page-projects" class="hide"></div>
+      <div id="page-remarks" class="hide"></div>
+      <div id="page-settings" class="hide"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== MODALS ====================== -->
+
+<!-- Attendance Modal -->
+<div class="modal-overlay hide" id="attendanceModal">
+  <div class="modal-box modal-lg">
+    <div class="modal-header green"><h5><i class="fas fa-clipboard-user me-2"></i>Attendance Record</h5><button class="modal-close" onclick="closeModal('attendanceModal')">×</button></div>
+    <div class="modal-body">
+      <div id="gpsSection">
+        <div class="loc-box wait" id="locBox"><i class="fas fa-spinner fa-spin text-blue-500"></i><div><strong>Checking your location...</strong><br><small>Please allow location access</small></div></div>
+      </div>
+      <div id="gpsSkipNote" class="alert alert-info hide"><i class="fas fa-info-circle"></i>GPS authentication is disabled for this project.</div>
+      <div id="attFields" class="hide">
+        <div class="form-row">
+          <div class="form-group-i"><label>Date</label><input type="date" id="attDate"></div>
+          <div class="form-group-i"><label>Time In</label><input type="time" id="attTimeIn"></div>
+          <div class="form-group-i"><label>Time Out</label><input type="time" id="attTimeOut"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group-i"><label>Work Done</label><textarea id="attWork" rows="3"></textarea></div>
+          <div class="form-group-i"><label>Remarks</label><textarea id="attRemarks" rows="3"></textarea></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
+          <div>
+            <div class="sig-header"><span class="sig-label">Technician Signature</span><button class="sig-clear" onclick="clearSig('attTechCanvas')">Clear</button></div>
+            <div class="sig-wrap"><canvas id="attTechCanvas" width="400" height="100"></canvas></div>
+          </div>
+          <div>
+            <div class="sig-header"><span class="sig-label">Client / Supervisor Signature</span><button class="sig-clear" onclick="clearSig('attClientCanvas')">Clear</button></div>
+            <div class="sig-wrap"><canvas id="attClientCanvas" width="400" height="100"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-outline-primary hide" id="retryLocBtn" onclick="checkLocation()"><i class="fas fa-redo"></i>Retry</button>
+      <button class="btn btn-outline" onclick="closeModal('attendanceModal')">Cancel</button>
+      <button class="btn btn-success" id="saveAttBtn" onclick="saveAttendance()" disabled><i class="fas fa-save"></i>Save Attendance</button>
+    </div>
+  </div>
+</div>
+
+<!-- Generic Form Modal -->
+<div class="modal-overlay hide" id="formModal">
+  <div class="modal-box modal-xl">
+    <div class="modal-header blue"><h5 id="formModalTitle">Form</h5><button class="modal-close" onclick="closeModal('formModal')">×</button></div>
+    <div class="modal-body" id="formModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('formModal')">Cancel</button>
+      <button class="btn btn-success" onclick="saveGenericForm()"><i class="fas fa-save"></i>Save Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Record Modal -->
+<div class="modal-overlay hide" id="viewModal">
+  <div class="modal-box modal-xl">
+    <div class="modal-header blue"><h5>Report Preview</h5><button class="modal-close" onclick="closeModal('viewModal')">×</button></div>
+    <div class="modal-body p-0" id="viewModalBody"></div>
+    <div class="modal-footer no-print">
+      <button class="btn btn-outline-primary" onclick="window.print()"><i class="fas fa-print"></i>Print / PDF</button>
+      <button class="btn btn-outline" onclick="closeModal('viewModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Staff Modal -->
+<div class="modal-overlay hide" id="staffModal">
+  <div class="modal-box modal-lg">
+    <div class="modal-header blue"><h5 id="staffModalTitle">Staff</h5><button class="modal-close" onclick="closeModal('staffModal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="staffKey">
+      <div class="form-row">
+        <div class="form-group-i"><label>Employee ID *</label><input type="text" id="staffEmpId"></div>
+        <div class="form-group-i"><label>Full Name *</label><input type="text" id="staffName"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-i"><label>Username *</label><input type="text" id="staffUsername"></div>
+        <div class="form-group-i"><label>Password</label><input type="text" id="staffPassword" placeholder="Leave blank to keep current"></div>
+        <div class="form-group-i"><label>Phone</label><input type="text" id="staffPhone"></div>
+      </div>
+      <div class="form-group-i" style="margin-bottom:14px"><label>Assigned Projects</label>
+        <div id="staffProjList" style="border:1.5px solid #e0e0e0;border-radius:10px;padding:10px;max-height:140px;overflow-y:auto;background:#fafafa"></div>
+      </div>
+      <label class="form-check"><input type="checkbox" id="staffActive"> Active</label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('staffModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStaff()"><i class="fas fa-save"></i>Save Staff</button>
+    </div>
+  </div>
+</div>
+
+<!-- Client Modal -->
+<div class="modal-overlay hide" id="clientModal">
+  <div class="modal-box modal-md">
+    <div class="modal-header green"><h5 id="clientModalTitle">Client</h5><button class="modal-close" onclick="closeModal('clientModal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="clientKey">
+      <div class="form-group-i" style="margin-bottom:12px"><label>Client / Company Name *</label><input type="text" id="clientName"></div>
+      <div class="form-group-i" style="margin-bottom:12px"><label>Username *</label><input type="text" id="clientUsername"></div>
+      <div class="form-group-i" style="margin-bottom:12px"><label>Password</label><input type="text" id="clientPassword" placeholder="Leave blank to keep current"></div>
+      <div class="form-group-i" style="margin-bottom:12px"><label>Assigned Project *</label><select id="clientProject"></select></div>
+      <label class="form-check"><input type="checkbox" id="clientActive"> Active</label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('clientModal')">Cancel</button>
+      <button class="btn btn-success" onclick="saveClient()"><i class="fas fa-save"></i>Save Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- Project Modal -->
+<div class="modal-overlay hide" id="projectModal">
+  <div class="modal-box modal-lg">
+    <div class="modal-header blue"><h5 id="projectModalTitle">Project</h5><button class="modal-close" onclick="closeModal('projectModal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="projectKey">
+      <div class="form-row">
+        <div class="form-group-i"><label>Project Code *</label><input type="text" id="projectCode"></div>
+        <div class="form-group-i"><label>Project Name *</label><input type="text" id="projectName"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-i"><label>Client Name *</label><input type="text" id="projectClient"></div>
+        <div class="form-group-i"><label>Contact Person</label><input type="text" id="projectContact"></div>
+      </div>
+      <div class="form-group-i" style="margin-bottom:14px"><label>Address</label><input type="text" id="projectAddress"></div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-body">
+          <label class="form-check" style="margin-bottom:12px"><input type="checkbox" id="projectGps"> <i class="fas fa-map-marker-alt" style="color:var(--p)"></i> Enable GPS Authentication</label>
+          <div class="form-row">
+            <div class="form-group-i"><label>Latitude</label><input type="number" step="any" id="projectLat"></div>
+            <div class="form-group-i"><label>Longitude</label><input type="number" step="any" id="projectLng"></div>
+            <div class="form-group-i"><label>Radius (m)</label><input type="number" id="projectRadius" value="50"></div>
+          </div>
+          <button class="btn btn-outline-primary btn-sm" onclick="captureMyLocation()"><i class="fas fa-crosshairs"></i>Use My Location</button>
+        </div>
+      </div>
+      <label class="form-check"><input type="checkbox" id="projectActive"> Active</label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('projectModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProject()"><i class="fas fa-save"></i>Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remark Modal -->
+<div class="modal-overlay hide" id="remarkModal">
+  <div class="modal-box modal-md">
+    <div class="modal-header yellow"><h5 style="color:#333"><i class="fas fa-comment-alt"></i> Add Remark / Complaint</h5><button class="modal-close" style="color:#333" onclick="closeModal('remarkModal')">×</button></div>
+    <div class="modal-body">
+      <div class="alert alert-info" id="remarkProjInfo"></div>
+      <div class="form-group-i" style="margin-bottom:12px"><label>Your Remark / Complaint</label><textarea id="remarkText" rows="5" placeholder="Describe your issue or feedback..."></textarea></div>
+      <div class="alert alert-info"><i class="fas fa-info-circle"></i> You can also contact us directly:</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('remarkModal')">Cancel</button>
+      <a id="whatsappLink" href="#" target="_blank" class="btn btn-success"><i class="fab fa-whatsapp"></i>WhatsApp</a>
+      <a id="emailLink" href="#" class="btn btn-outline-primary"><i class="fas fa-envelope"></i>Email</a>
+      <button class="btn btn-warning" onclick="submitRemark()"><i class="fas fa-paper-plane"></i>Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Product Modal (Inventory) -->
+<div class="modal-overlay hide" id="productModal">
+  <div class="modal-box modal-lg">
+    <div class="modal-header blue"><h5 id="productModalTitle">Add Product</h5><button class="modal-close" onclick="closeModal('productModal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="productKey">
+      <div class="form-row">
+        <div class="form-group-i" style="grid-column:1/-1"><label>Product Name *</label><input type="text" id="productName" placeholder="e.g. Deltamethrin 2.5%"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-i"><label>Category</label><select id="productCategory"><option>Insecticide</option><option>Rodenticide</option><option>Bait</option><option>Equipment</option><option>PPE</option><option>Other</option></select></div>
+        <div class="form-group-i"><label>Brand</label><input type="text" id="productBrand" placeholder="Brand name"></div>
+        <div class="form-group-i"><label>SKU / Reference</label><input type="text" id="productSku" placeholder="e.g. SKU-001"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-i"><label>Unit</label><select id="productUnit"><option>ml</option><option>L</option><option>g</option><option>kg</option><option>pcs</option><option>box</option><option>roll</option><option>pair</option></select></div>
+        <div class="form-group-i"><label>Min Stock Alert</label><input type="number" id="productMinStock" value="500"></div>
+        <div class="form-group-i" id="openingStockGroup"><label>Opening Stock</label><input type="number" id="productOpeningStock" value="0"></div>
+      </div>
+      <div class="form-group-i" style="margin-bottom:12px"><label>Notes</label><textarea id="productNotes" rows="2" placeholder="Optional notes"></textarea></div>
+      <label class="form-check"><input type="checkbox" id="productActive"> Active (visible to staff)</label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('productModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()"><i class="fas fa-save"></i>Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stock Adjust Modal -->
+<div class="modal-overlay hide" id="stockModal">
+  <div class="modal-box modal-md">
+    <div class="modal-header green"><h5 id="stockModalTitle">Adjust Stock</h5><button class="modal-close" onclick="closeModal('stockModal')">×</button></div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+        <button class="btn btn-success btn-sm" id="adjTypeAdd" onclick="setAdjType('add')"><i class="fas fa-plus"></i>Stock In</button>
+        <button class="btn btn-outline btn-outline-orange btn-sm" id="adjTypeUsage" onclick="setAdjType('usage')"><i class="fas fa-minus"></i>Usage</button>
+        <button class="btn btn-outline btn-outline-primary btn-sm" id="adjTypeAdjust" onclick="setAdjType('adjust')"><i class="fas fa-sliders-h"></i>Set Value</button>
+      </div>
+      <p id="adjTypeNote" class="alert alert-info" style="margin-bottom:14px;font-size:.82rem"></p>
+      <div class="form-row">
+        <div class="form-group-i"><label>Quantity *</label><input type="number" id="adjQty" min="0" placeholder="0"></div>
+        <div class="form-group-i"><label>Date</label><input type="date" id="adjDate"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-i"><label>Batch Number</label><input type="text" id="adjBatch" placeholder="e.g. BT-2024-001"></div>
+        <div class="form-group-i"><label>Supplier</label><input type="text" id="adjSupplier" placeholder="Supplier name"></div>
+      </div>
+      <div class="form-group-i"><label>Notes</label><textarea id="adjNotes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('stockModal')">Cancel</button>
+      <button class="btn btn-success" onclick="saveStockAdj()"><i class="fas fa-save"></i>Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Usage Modal -->
+<div class="modal-overlay hide" id="usageModal">
+  <div class="modal-box modal-md">
+    <div class="modal-header orange"><h5>Log Chemical / Supply Usage</h5><button class="modal-close" onclick="closeModal('usageModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group-i" style="margin-bottom:12px"><label>Product *</label>
+        <select id="usageProduct" onchange="onUsageProductChange()">
+          <option value="">-- Select Product --</option>
+        </select>
+      </div>
+      <div id="usageStockInfo" class="hide" style="margin-bottom:12px"></div>
+      <div class="form-group-i" style="margin-bottom:12px"><label>Project *</label>
+        <select id="usageProject"><option value="">-- Select Project --</option></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group-i"><label>Quantity Used *</label><input type="number" id="usageQty" min="0" placeholder="0"></div>
+        <div class="form-group-i"><label>Date</label><input type="date" id="usageDate"></div>
+      </div>
+      <div class="form-group-i" style="margin-bottom:12px"><label>Batch Number</label><input type="text" id="usageBatch" placeholder="e.g. BT-2024-001"></div>
+      <div class="form-group-i"><label>Notes</label><textarea id="usageNotes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('usageModal')">Cancel</button>
+      <button class="btn btn-orange" onclick="saveUsage()"><i class="fas fa-save"></i>Save Usage</button>
+    </div>
+  </div>
+</div>
+
+<!-- Form Builder Modal -->
+<div class="modal-overlay hide" id="fbModal">
+  <div class="modal-box modal-xl">
+    <div class="modal-header purple"><h5 id="fbModalTitle">Create Custom Form</h5><button class="modal-close" onclick="closeModal('fbModal')">×</button></div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <!-- Left: Settings -->
+        <div>
+          <div class="form-group-i" style="margin-bottom:12px"><label>Form Name *</label><input type="text" id="fbName" placeholder="e.g. Fumigation Log"></div>
+          <div class="form-group-i" style="margin-bottom:12px"><label>Description</label><input type="text" id="fbDesc" placeholder="Brief description"></div>
+          <div style="margin-bottom:12px">
+            <label class="form-label" style="font-size:.75rem;font-weight:700;color:#666;text-transform:uppercase">Icon</label>
+            <div class="icon-grid" id="fbIconGrid"></div>
+          </div>
+          <label class="form-check" style="margin-bottom:16px"><input type="checkbox" id="fbActive"> Active (visible in Data Entry)</label>
+          <div style="border-top:1.5px solid #e9ecef;padding-top:14px">
+            <label class="form-label" style="font-size:.75rem;font-weight:700;color:#666;text-transform:uppercase;display:block;margin-bottom:8px">Add Field</label>
+            <div class="field-type-grid" id="fbFieldTypeGrid"></div>
+            <button class="btn btn-purple btn-sm" style="margin-top:10px;width:100%" onclick="fbAddField()"><i class="fas fa-plus"></i>Add Selected Field</button>
+          </div>
+        </div>
+        <!-- Right: Fields -->
+        <div>
+          <label class="form-label" style="font-size:.75rem;font-weight:700;color:#666;text-transform:uppercase">Form Fields</label>
+          <div id="fbFieldsList" style="max-height:50vh;overflow-y:auto;margin-top:6px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('fbModal')">Cancel</button>
+      <button class="btn btn-purple" onclick="saveFbForm()"><i class="fas fa-save"></i>Save Form</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====================== CONFIG ======================
+const COMPANY = {
+  name: 'A2Z Industrial Solutions',
+  address: '30-F, J-1 Market, Wapda Town, Lahore',
+  phone: '0307-0430056',
+  email: 'info@a2zidsolutions.com',
+  whatsapp: '923070430056'
+};
+
+const FB_CONFIG = {
+  apiKey:"AIzaSyCMBoABKBWTOx1B6zEBCk7QCeTKogUYgxQ",
+  authDomain:"a2z-ipm.firebaseapp.com",
+  databaseURL:"https://a2z-ipm-default-rtdb.firebaseio.com",
+  projectId:"a2z-ipm",
+  storageBucket:"a2z-ipm.firebasestorage.app",
+  messagingSenderId:"37433212653",
+  appId:"1:37433212653:web:e58af93855931236d456e4"
+};
+
+// ====================== FIREBASE ======================
+firebase.initializeApp(FB_CONFIG);
+const DB = firebase.database();
+
+// ====================== STATE ======================
+let CU = null; // Current user
+let USERS=[], PROJECTS=[], RECORDS=[], REMARKS=[], CUSTOM_FORMS=[], PRODUCTS=[], STOCK_LOGS=[];
+let curPage = 'dashboard';
+let curProject = null, curFormType = null;
+let attLocStatus = 'wait', attLat=0, attLng=0, attDist=0;
+let sigDrawing={}, sigLastPos={}, sigCanvas={};
+let adjProductKey = null, adjType = 'add';
+let fbEditKey = null, fbFields = [], fbSelIcon = 'file-alt', fbSelFieldType = 'text';
+let charts = {};
+
+// ====================== HELPERS ======================
+const $ = id => document.getElementById(id);
+const fmtDate = d => d ? new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '-';
+const fmtDT = ts => ts ? new Date(ts).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-';
+const todayStr = () => new Date().toISOString().split('T')[0];
+const nowTime = () => new Date().toTimeString().slice(0,5);
+const COLORS = ['#003d7a','#28a745','#ffc107','#dc3545','#17a2b8','#6f42c1','#fd7e14','#20c997','#e83e8c'];
+
+const BUILTIN_FORMS = {
+  attendance:  {name:'Attendance',     icon:'clipboard-user'},
+  insecticide: {name:'Insecticide Log',icon:'spray-can'},
+  gluebox:     {name:'Glue Box',       icon:'box-open'},
+  efk:         {name:'EFK Monitoring', icon:'lightbulb'},
+  lizard:      {name:'Lizard Trapping',icon:'dragon'},
+  cat:         {name:'Cat Trapping',   icon:'cat'},
+  snake:       {name:'Snake Box',      icon:'worm'},
+  checklist:   {name:'IPM Checklist',  icon:'tasks'},
+  baitstation: {name:'Bait Station',   icon:'box'},
+};
+const formName = t => BUILTIN_FORMS[t]?.name || CUSTOM_FORMS.find(f=>f.key===t)?.name || t;
+const formIcon = t => BUILTIN_FORMS[t]?.icon || CUSTOM_FORMS.find(f=>f.key===t)?.icon || 'file-alt';
+const calcDist = (la1,lo1,la2,lo2)=>{const R=6371000,dL=(la2-la1)*Math.PI/180,dO=(lo2-lo1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));};
+
+function showToast(msg,type='success'){
+  const d=document.createElement('div');
+  d.className=`toast ${type}`;
+  const ic = type==='success'?'check-circle':type==='error'?'times-circle':'info-circle';
+  d.innerHTML=`<i class="fas fa-${ic}" style="color:${type==='success'?'#28a745':type==='error'?'#dc3545':'#17a2b8'}"></i><span>${msg}</span>`;
+  $('toastBox').appendChild(d);
+  d.onclick=()=>d.remove();
+  setTimeout(()=>d.remove&&d.remove(),4000);
+}
+
+// Network
+window.addEventListener('online',()=>{$('onlineBadge').className='online';$('onlineText').textContent='Online';});
+window.addEventListener('offline',()=>{$('onlineBadge').className='offline';$('onlineText').textContent='Offline';});
+
+// ====================== FIREBASE LISTENERS ======================
+function loadedCount(){ return; }
+let _loaded = 0, _total = 7;
+function checkInitLoad(){ _loaded++; if(_loaded>=_total){ showApp(); } }
+
+function parseSnap(snap){const l=[];snap.forEach(c=>{l.push({key:c.key,...c.val()});});return l;}
+
+function setupListeners(){
+  DB.ref('users').on('value',s=>{USERS=parseSnap(s);checkInitLoad();refreshPage();});
+  DB.ref('projects').on('value',s=>{PROJECTS=parseSnap(s);checkInitLoad();refreshPage();});
+  DB.ref('records').on('value',s=>{RECORDS=parseSnap(s);checkInitLoad();refreshPage();});
+  DB.ref('remarks').on('value',s=>{REMARKS=parseSnap(s);checkInitLoad();refreshPage();});
+  DB.ref('customForms').on('value',s=>{CUSTOM_FORMS=parseSnap(s);checkInitLoad();refreshPage();});
+  DB.ref('products').on('value',s=>{PRODUCTS=parseSnap(s);checkInitLoad();refreshPage();});
+  DB.ref('stockLogs').on('value',s=>{STOCK_LOGS=parseSnap(s);checkInitLoad();refreshPage();});
+}
+
+async function ensureAdmin(){
+  const a = USERS.find(u=>u.username==='admin'&&u.role==='admin');
+  if(!a) await DB.ref('users/admin_default').set({empId:'ADM001',name:'Administrator',username:'admin',password:'admin123',role:'admin',projects:[],active:true,createdAt:Date.now()});
+}
+
+function showApp(){
+  $('loadingScreen').classList.add('hide');
+  ensureAdmin().then(()=>{
+    const saved = localStorage.getItem('a2z_user');
+    if(saved){
+      const {key}=JSON.parse(saved);
+      const u=USERS.find(u=>u.key===key&&u.active);
+      if(u){CU=u;launchApp();return;}
+      localStorage.removeItem('a2z_user');
+    }
+    $('loginPage').classList.remove('hide');
+  });
+}
+
+// ====================== AUTH ======================
+function togglePass(){
+  const p=$('loginPass'), ic=$('eyeIcon');
+  if(p.type==='password'){p.type='text';ic.className='fas fa-eye-slash';}
+  else{p.type='password';ic.className='fas fa-eye';}
+}
+
+async function doLogin(){
+  const user=$('loginUser').value.trim().toLowerCase();
+  const pass=$('loginPass').value;
+  $('loginBtn').disabled=true;
+  $('loginBtn').innerHTML='<i class="fas fa-spinner fa-spin"></i>Logging in...';
+  $('loginError').classList.add('hide');
+  setTimeout(()=>{
+    const u=USERS.find(u=>u.username?.toLowerCase()===user&&u.password===pass&&u.active);
+    if(u){CU=u;localStorage.setItem('a2z_user',JSON.stringify({key:u.key}));$('loginPage').classList.add('hide');launchApp();}
+    else{$('loginError').textContent='Invalid username or password';$('loginError').classList.remove('hide');}
+    $('loginBtn').disabled=false;
+    $('loginBtn').innerHTML='<i class="fas fa-sign-in-alt"></i>Login';
+  },600);
+}
+$('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+function doLogout(){CU=null;localStorage.removeItem('a2z_user');location.reload();}
+
+// ====================== NAV ======================
+const NAV_ITEMS=[
+  {page:'dashboard', icon:'home',     label:'Dashboard'},
+  {page:'dataentry', icon:'edit',     label:'Data Entry',    noClient:true},
+  {page:'records',   icon:'file-alt', label:'Records'},
+  {page:'reports',   icon:'chart-bar',label:'Monthly Reports'},
+  {page:'inventory', icon:'warehouse', label:'Inventory',    noClient:true},
+  {page:'formbuilder',icon:'tools',   label:'Form Builder',  adminOnly:true},
+  {page:'staff',     icon:'users',    label:'Staff',         adminOnly:true},
+  {page:'clients',   icon:'user-tie', label:'Clients',       adminOnly:true},
+  {page:'projects',  icon:'building', label:'Projects',      adminOnly:true},
+  {page:'remarks',   icon:'comments', label:'Client Remarks',adminOnly:true},
+  {page:'settings',  icon:'cog',      label:'Settings'},
+];
+
+function buildNav(){
+  $('navMenu').innerHTML = NAV_ITEMS.filter(n=>{
+    if(n.adminOnly&&CU.role!=='admin')return false;
+    if(n.noClient&&CU.role==='client')return false;
+    return true;
+  }).map(n=>`
+    <div class="nav-item${curPage===n.page?' active':''}" onclick="navTo('${n.page}')">
+      <i class="fas fa-${n.icon}"></i>${n.label}
+    </div>
+  `).join('');
+  $('sidebarFooter').textContent = COMPANY.phone;
+}
+
+function navTo(page){
+  curPage=page;
+  buildNav();
+  document.querySelectorAll('.page-content > div').forEach(d=>d.classList.add('hide'));
+  $(`page-${page}`).classList.remove('hide');
+  if(window.innerWidth<769){closeSidebar();}
+  renderPage(page);
+}
+
+function toggleSidebar(){
+  const s=$('sidebar'), m=$('mainContent'), o=$('overlay');
+  if(window.innerWidth<769){s.classList.toggle('open');o.classList.toggle('show');}
+  else{s.classList.toggle('closed');m.classList.toggle('full');}
+}
+function closeSidebar(){$('sidebar').classList.remove('open');$('overlay').classList.remove('show');}
+
+function launchApp(){
+  $('mainApp').classList.remove('hide');
+  $('topUserName').textContent=CU.name;
+  $('topUserRole').textContent=CU.role==='admin'?'Administrator':CU.role==='staff'?'Staff':'Client';
+  $('topUserAvatar').textContent=CU.name.charAt(0).toUpperCase();
+  buildNav();
+  navTo('dashboard');
+}
+
+function refreshPage(){if(CU)renderPage(curPage);}
+function renderPage(p){
+  switch(p){
+    case 'dashboard':  renderDashboard();break;
+    case 'dataentry':  renderDataEntry();break;
+    case 'records':    renderRecords();break;
+    case 'reports':    renderReports();break;
+    case 'inventory':  renderInventory();break;
+    case 'formbuilder':renderFormBuilder();break;
+    case 'staff':      renderStaff();break;
+    case 'clients':    renderClients();break;
+    case 'projects':   renderProjects();break;
+    case 'remarks':    renderRemarks();break;
+    case 'settings':   renderSettings();break;
+  }
+}
+
+// ====================== MODAL HELPERS ======================
+function openModal(id){const o=$(id);o.classList.remove('hide');requestAnimationFrame(()=>o.classList.add('show'));}
+function closeModal(id){const o=$(id);o.classList.remove('show');setTimeout(()=>o.classList.add('hide'),250);}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)closeModal(this.id);}));
+
+// ====================== SIGNATURE PAD ======================
+function initSig(canvasId){
+  const canvas=$(canvasId);
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  ctx.strokeStyle='#1a1a2e';ctx.lineWidth=2;ctx.lineCap='round';
+  sigCanvas[canvasId]=canvas;
+  const getPos=(e)=>{const r=canvas.getBoundingClientRect(),cl=e.touches?e.touches[0].clientX:e.clientX,ct=e.touches?e.touches[0].clientY:e.clientY;return{x:cl-r.left,y:ct-r.top};};
+  canvas.onmousedown=canvas.ontouchstart=(e)=>{e.preventDefault();sigDrawing[canvasId]=true;sigLastPos[canvasId]=getPos(e);};
+  canvas.onmousemove=canvas.ontouchmove=(e)=>{e.preventDefault();if(!sigDrawing[canvasId])return;const p=getPos(e),ctx2=canvas.getContext('2d');ctx2.beginPath();ctx2.moveTo(sigLastPos[canvasId].x,sigLastPos[canvasId].y);ctx2.lineTo(p.x,p.y);ctx2.stroke();sigLastPos[canvasId]=p;};
+  canvas.onmouseup=canvas.onmouseleave=canvas.ontouchend=(e)=>{e.preventDefault();sigDrawing[canvasId]=false;};
+}
+function clearSig(canvasId){const c=$(canvasId);if(c)c.getContext('2d').clearRect(0,0,c.width,c.height);}
+function getSig(canvasId){const c=$(canvasId);if(!c)return'';const ctx=c.getContext('2d');const px=ctx.getImageData(0,0,c.width,c.height).data;if(Array.from(px).some(v=>v!==0))return c.toDataURL();return'';}
+
+// ====================== DASHBOARD ======================
+function renderDashboard(){
+  const td=todayStr();
+  let myRec=RECORDS,myProj=PROJECTS;
+  if(CU.role==='staff'){myProj=PROJECTS.filter(p=>(CU.projects||[]).includes(p.key));myRec=RECORDS.filter(r=>r.userKey===CU.key);}
+  if(CU.role==='client'){myProj=PROJECTS.filter(p=>p.key===CU.projectKey);myRec=RECORDS.filter(r=>r.projectKey===CU.projectKey);}
+  const recent=[...myRec].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,8);
+  const stats=CU.role==='admin'?[
+    {l:'Active Projects',v:PROJECTS.filter(p=>p.active).length,i:'building',c:'blue'},
+    {l:'Active Staff',v:USERS.filter(u=>u.role==='staff'&&u.active).length,i:'users',c:'green'},
+    {l:"Today's Entries",v:RECORDS.filter(r=>r.date===td).length,i:'clipboard-check',c:'orange'},
+    {l:'Total Records',v:RECORDS.length,i:'file-alt',c:'purple'},
+    {l:'Client Remarks',v:REMARKS.length,i:'comments',c:'red'},
+  ]:[
+    {l:'My Projects',v:myProj.length,i:'building',c:'blue'},
+    {l:"Today's Entries",v:myRec.filter(r=>r.date===td).length,i:'clipboard-check',c:'orange'},
+    {l:'Total Records',v:myRec.length,i:'file-alt',c:'purple'},
+  ];
+
+  $('page-dashboard').innerHTML=`
+    <div class="page-title"><i class="fas fa-home"></i>Dashboard</div>
+    <div class="stats-grid">${stats.map(s=>`
+      <div class="stat-card">
+        <div class="stat-icon ${s.c}"><i class="fas fa-${s.i}"></i></div>
+        <div><div class="stat-val">${s.v}</div><div class="stat-lbl">${s.l}</div></div>
+      </div>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:1fr${CU.role==='client'?'':''};gap:20px">
+      <div class="card">
+        <div class="card-header"><span><i class="fas fa-clock me-2"></i>Recent Activity</span></div>
+        <div class="card-body">
+          ${recent.length?recent.map(r=>{
+            const proj=PROJECTS.find(p=>p.key===r.projectKey),usr=USERS.find(u=>u.key===r.userKey);
+            return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5;last-child:border-0">
+              <div class="stat-icon blue" style="width:38px;height:38px;font-size:.85rem;flex-shrink:0"><i class="fas fa-${formIcon(r.formType)}"></i></div>
+              <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.88rem">${formName(r.formType)}</div>
+              <div style="font-size:.75rem;color:#999;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${proj?.name||'-'} · ${usr?.name||'-'}</div></div>
+              <div style="font-size:.72rem;color:#bbb;white-space:nowrap">${fmtDT(r.createdAt)}</div>
+            </div>`;}).join(''):'<p style="color:#bbb;text-align:center;padding:30px 0;font-size:.88rem">No recent activity</p>'}
+          ${CU.role==='client'?`<div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
+            <button class="btn btn-warning" onclick="openRemarkModal()"><i class="fas fa-comment-alt"></i>Add Remark / Complaint</button>
+          </div>`:''}
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <div style="width:50px;height:50px;background:linear-gradient(135deg,var(--p),var(--ps));border-radius:14px;display:flex;align-items:center;justify-content:center"><i class="fas fa-building" style="color:#fff;font-size:1.2rem"></i></div>
+          <div>
+            <div style="font-weight:900;font-size:1rem;color:#222">${COMPANY.name}</div>
+            <div style="font-size:.78rem;color:#999">${COMPANY.address}</div>
+            <div style="font-size:.78rem;color:#999">${COMPANY.phone} · ${COMPANY.email}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ====================== DATA ENTRY ======================
+function renderDataEntry(){
+  const myProj = CU.role==='staff'?PROJECTS.filter(p=>p.active&&(CU.projects||[]).includes(p.key)):PROJECTS.filter(p=>p.active);
+  const customActive = CUSTOM_FORMS.filter(f=>f.active);
+  $('page-dataentry').innerHTML=`
+    <div class="page-title"><i class="fas fa-edit"></i>Data Entry</div>
+    <div class="card"><div class="card-body">
+      <div class="form-group-i"><label>Select Project</label>
+        <select id="deProjectSelect" style="font-size:1rem;padding:12px 16px">
+          <option value="">-- Select Project --</option>
+          ${myProj.map(p=>`<option value="${p.key}">${p.code} – ${p.name}</option>`).join('')}
+        </select>
+      </div>
+    </div></div>
+    <p style="font-size:.72rem;font-weight:700;color:#aaa;text-transform:uppercase;margin-bottom:10px">Built-in Forms</p>
+    <div class="forms-grid">
+      ${Object.entries(BUILTIN_FORMS).map(([type,info])=>`
+        <div class="form-card" onclick="openFormEntry('${type}')">
+          <i class="fas fa-${info.icon}"></i>
+          <h6>${info.name}</h6>
+          <small>${type==='attendance'?'📍 GPS Enabled':'Manual Entry'}</small>
+        </div>`).join('')}
+    </div>
+    ${customActive.length?`
+      <p style="font-size:.72rem;font-weight:700;color:#aaa;text-transform:uppercase;margin:18px 0 10px">Custom Forms</p>
+      <div class="forms-grid">
+        ${customActive.map(f=>`
+          <div class="form-card custom-card" onclick="openFormEntry('${f.key}')">
+            <i class="fas fa-${f.icon||'file-alt'}"></i>
+            <h6>${f.name}</h6>
+            <small>Custom Form</small>
+          </div>`).join('')}
+      </div>`:''}
+  `;
+}
+
+function openFormEntry(type){
+  const pKey=$('deProjectSelect')?.value;
+  if(!pKey){showToast('Please select a project first','error');return;}
+  curProject=PROJECTS.find(p=>p.key===pKey);
+  curFormType=type;
+  if(type==='attendance') openAttendanceModal();
+  else openGenericFormModal(type);
+}
+
+// ====================== ATTENDANCE ======================
+function openAttendanceModal(){
+  $('attDate').value=todayStr();$('attTimeIn').value=nowTime();$('attTimeOut').value='';$('attWork').value='';$('attRemarks').value='';
+  $('locBox').className='loc-box wait';
+  $('locBox').innerHTML='<i class="fas fa-spinner fa-spin" style="color:#007bff;font-size:1.6rem"></i><div><strong>Checking your location...</strong><br><small>Please allow location access</small></div>';
+  $('attFields').classList.add('hide');$('saveAttBtn').disabled=true;$('retryLocBtn').classList.add('hide');
+  openModal('attendanceModal');
+  setTimeout(()=>{initSig('attTechCanvas');initSig('attClientCanvas');},300);
+
+  if(curProject.gpsEnabled&&curProject.lat&&curProject.lng){
+    $('gpsSection').classList.remove('hide');$('gpsSkipNote').classList.add('hide');
+    checkLocation();
+  } else {
+    $('gpsSection').classList.add('hide');$('gpsSkipNote').classList.remove('hide');
+    $('attFields').classList.remove('hide');$('saveAttBtn').disabled=false;
+    attLocStatus='skip';
+  }
+}
+
+function checkLocation(){
+  $('retryLocBtn').classList.add('hide');
+  $('locBox').className='loc-box wait';
+  $('locBox').innerHTML='<i class="fas fa-spinner fa-spin" style="color:#007bff;font-size:1.6rem"></i><div><strong>Getting location...</strong><br><small>Please wait...</small></div>';
+  if(!navigator.geolocation){showLocError('Geolocation not supported');return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    attLat=pos.coords.latitude;attLng=pos.coords.longitude;
+    attDist=Math.round(calcDist(attLat,attLng,curProject.lat,curProject.lng));
+    const r=curProject.radius||50;
+    if(attDist<=r){
+      $('locBox').className='loc-box ok';
+      $('locBox').innerHTML=`<i class="fas fa-check-circle" style="color:var(--g);font-size:1.6rem"></i><div><strong style="color:#155724">✓ Location Verified</strong><br><small>You are ${attDist}m from the site</small></div>`;
+      attLocStatus='ok';$('attFields').classList.remove('hide');$('saveAttBtn').disabled=false;
+    } else {
+      $('locBox').className='loc-box fail';
+      $('locBox').innerHTML=`<i class="fas fa-times-circle" style="color:var(--r);font-size:1.6rem"></i><div><strong style="color:#721c24">✗ Too Far Away</strong><br><small>You are ${attDist}m from site (max: ${r}m)</small></div>`;
+      attLocStatus='fail';$('retryLocBtn').classList.remove('hide');
+    }
+  },e=>{showLocError(e.message);},{enableHighAccuracy:true,timeout:15000});
+}
+function showLocError(msg){$('locBox').className='loc-box fail';$('locBox').innerHTML=`<i class="fas fa-exclamation-triangle" style="color:var(--r);font-size:1.6rem"></i><div><strong style="color:#721c24">Location Error</strong><br><small>${msg}</small></div>`;attLocStatus='fail';$('retryLocBtn').classList.remove('hide');}
+
+function saveAttendance(){
+  const data={formType:'attendance',projectKey:curProject.key,userKey:CU.key,
+    date:$('attDate').value,timeIn:$('attTimeIn').value,timeOut:$('attTimeOut').value,
+    work:$('attWork').value,remarks:$('attRemarks').value,
+    techSignature:getSig('attTechCanvas'),clientSignature:getSig('attClientCanvas'),
+    location:{lat:attLat,lng:attLng,distance:attDist,verified:attLocStatus==='ok',skipped:attLocStatus==='skip'},
+    createdAt:Date.now()};
+  DB.ref('records').push(data).then(()=>{closeModal('attendanceModal');showToast('Attendance saved!');}).catch(()=>showToast('Save failed','error'));
+}
+
+// ====================== GENERIC FORM ======================
+function openGenericFormModal(type){
+  $('formModalTitle').innerHTML=`<i class="fas fa-${formIcon(type)} me-2"></i>${formName(type)}`;
+  $('formModalBody').innerHTML=buildFormHTML(type);
+  openModal('formModal');
+  // init sig pads
+  setTimeout(()=>{initSig('techSigCanvas');initSig('clientSigCanvas');},300);
+}
+
+function buildFormHTML(type){
+  const today=todayStr(),now=nowTime();
+  const base=`
+    <div class="form-row">
+      <div class="form-group-i"><label>Date *</label><input type="date" id="fDate" value="${today}"></div>
+      <div class="form-group-i"><label>Time</label><input type="time" id="fTime" value="${now}"></div>
+    </div>`;
+
+  let specific='';
+
+  if(type==='insecticide'){
+    specific=`
+      <div class="form-row">
+        <div class="form-group-i"><label>Chemical</label><select id="fChemical">${['Deltamethrin','Alphacypermethrin','Cypermethrin','Bifenthrin','Fipronil','Imidacloprid','Chlorpyrifos'].map(c=>`<option>${c}</option>`).join('')}</select></div>
+        <div class="form-group-i"><label>Batch Number</label><input type="text" id="fBatch" placeholder="e.g. BT-2024-001"></div>
+        <div class="form-group-i"><label>Qty Used (ml)</label><input type="number" id="fQty" value="50"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-i"><label>Water (L)</label><input type="number" id="fWater" value="10"></div>
+        <div class="form-group-i"><label>Remaining Stock (ml)</label><input type="number" id="fRemaining" placeholder="Current stock" oninput="checkLowStock(this)"></div>
+      </div>
+      <div id="lowStockWarn" class="alert alert-danger hide"><i class="fas fa-exclamation-triangle"></i>⚠ Low stock warning!</div>
+      <div class="form-group-i" style="margin-bottom:14px">
+        <label>Areas Treated</label>
+        <div id="areasTagBox" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:28px"></div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="newAreaInput" class="form-group-i" style="flex:1;border:1.5px solid #e0e0e0;border-radius:10px;padding:9px 13px;font-size:.88rem;outline:none" placeholder="Add area..." onkeydown="if(event.key==='Enter'){addArea();event.preventDefault();}">
+          <button class="btn btn-outline-primary btn-sm" onclick="addArea()"><i class="fas fa-plus"></i>Add</button>
+        </div>
+      </div>`;
+    setTimeout(()=>['Outside','Drain','Washroom','Office','Storage'].forEach(a=>addAreaTag(a)),50);
+  } else if(type==='checklist'){
+    const items=['Spray Treatment','EFK Inspection','Glue Box Check','Bait Station Check','Chemical Inventory','Snake Box Check','Documentation'];
+    specific=`
+      <div class="form-row">
+        <div class="form-group-i"><label>Time In</label><input type="time" id="fTimeIn" value="${now}"></div>
+        <div class="form-group-i"><label>Time Out</label><input type="time" id="fTimeOut"></div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Activity</th><th>Status</th></tr></thead><tbody>
+        ${items.map((item,i)=>`<tr><td>${i+1}</td><td>${item}</td><td>
+          <select class="chk-sel" data-item="${item}" style="border:1.5px solid #e0e0e0;border-radius:8px;padding:6px 10px;font-size:.82rem">
+            <option value="done">✓ Done</option><option value="pending">⏳ Pending</option><option value="na">– N/A</option>
+          </select></td></tr>`).join('')}
+      </tbody></table></div>`;
+  } else if(type==='baitstation'){
+    specific=`
+      <div class="form-row">
+        <div class="form-group-i"><label>Bait Brand</label><input type="text" id="fBaitBrand" placeholder="e.g. Contrac"></div>
+        <div class="form-group-i"><label>Total Stations</label><input type="number" id="fTotalSt" value="0"></div>
+        <div class="form-group-i"><label>Active Stations</label><input type="number" id="fActiveSt" value="0"></div>
+        <div class="form-group-i"><label>Total Bait Used (g)</label><input type="number" id="fBaitUsed" value="0"></div>
+      </div>
+      <div class="form-group-i" style="margin-bottom:8px"><label>Station Details</label></div>
+      <div class="table-wrap" style="margin-bottom:14px">
+        <table><thead><tr><th>#</th><th>Location</th><th>Type</th><th>Consumed(g)</th><th>Replaced(g)</th><th>Condition</th><th>Pest Activity</th><th></th></tr></thead>
+        <tbody id="baitEntryBody"></tbody></table>
+        <button class="btn btn-outline-primary btn-sm" style="margin-top:8px" onclick="addBaitRow()"><i class="fas fa-plus"></i>Add Station</button>
+      </div>`;
+    setTimeout(()=>addBaitRow(),50);
+  } else if(CUSTOM_FORMS.find(f=>f.key===type)){
+    const cf=CUSTOM_FORMS.find(f=>f.key===type);
+    specific=cf.fields.map(field=>{
+      if(field.type==='signature') return `<div style="margin-bottom:14px">
+        <div class="sig-header"><span class="sig-label">${field.label}</span><button class="sig-clear" onclick="clearSig('cSig_${field.id}')">Clear</button></div>
+        <div class="sig-wrap"><canvas id="cSig_${field.id}" width="400" height="100"></canvas></div></div>`;
+      if(field.type==='checkbox') return `<label class="form-check" style="margin-bottom:12px"><input type="checkbox" id="cf_${field.id}"> ${field.label}${field.required?' <span style="color:red">*</span>':''}</label>`;
+      if(field.type==='select') return `<div class="form-group-i" style="margin-bottom:12px"><label>${field.label}${field.required?' *':''}</label>
+        <select id="cf_${field.id}"><option value="">-- Select --</option>${(field.options||[]).map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+      if(field.type==='textarea') return `<div class="form-group-i" style="margin-bottom:12px"><label>${field.label}${field.required?' *':''}</label><textarea id="cf_${field.id}" rows="3"></textarea></div>`;
+      if(field.type==='table'){
+        const cols=field.tableColumns||['Item','Value'];
+        return `<div class="form-group-i" style="margin-bottom:14px"><label>${field.label}</label>
+          <div class="table-wrap"><table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}<th></th></tr></thead>
+          <tbody id="ctbl_${field.id}"></tbody></table>
+          <button class="btn btn-outline-primary btn-sm" style="margin-top:6px" onclick="addCustomTableRow('${field.id}','${cols.join(',')}')"><i class="fas fa-plus"></i>Add Row</button>
+          </div></div>`;
+      }
+      return `<div class="form-group-i" style="margin-bottom:12px"><label>${field.label}${field.required?' *':''}</label>
+        <input type="${field.type}" id="cf_${field.id}" placeholder="${field.placeholder||''}"></div>`;
+    }).join('');
+    setTimeout(()=>{
+      cf.fields.filter(f=>f.type==='signature').forEach(f=>initSig(`cSig_${f.id}`));
+    },300);
+  } else {
+    // Generic entry table
+    specific=`
+      <div class="form-group-i" style="margin-bottom:8px"><label>Entries</label></div>
+      <div class="table-wrap" style="margin-bottom:14px">
+        <table><thead><tr><th>#</th><th>Location</th><th>Count</th><th>Status</th><th></th></tr></thead>
+        <tbody id="genericEntryBody"></tbody></table>
+        <button class="btn btn-outline-primary btn-sm" style="margin-top:8px" onclick="addGenericRow()"><i class="fas fa-plus"></i>Add Row</button>
+      </div>`;
+    setTimeout(()=>addGenericRow(),50);
+  }
+
+  return base+specific+`
+    <div class="form-group-i" style="margin-bottom:14px"><label>Remarks</label><textarea id="fRemarks" rows="2"></textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding-top:14px;border-top:1.5px solid #f0f0f0">
+      <div>
+        <div class="sig-header"><span class="sig-label">Technician Signature</span><button class="sig-clear" onclick="clearSig('techSigCanvas')">Clear</button></div>
+        <div class="sig-wrap"><canvas id="techSigCanvas" width="400" height="100"></canvas></div>
+      </div>
+      <div>
+        <div class="sig-header"><span class="sig-label">Client / Supervisor Signature</span><button class="sig-clear" onclick="clearSig('clientSigCanvas')">Clear</button></div>
+        <div class="sig-wrap"><canvas id="clientSigCanvas" width="400" height="100"></canvas></div>
+      </div>
+    </div>`;
+}
+
+function checkLowStock(el){
+  $('lowStockWarn').classList.toggle('hide',!(Number(el.value)<500&&el.value));
+}
+
+let _areas=[];
+function addArea(){const v=$('newAreaInput')?.value?.trim();if(v){addAreaTag(v);$('newAreaInput').value='';}}
+function addAreaTag(a){_areas.push(a);renderAreaTags();}
+function removeArea(i){_areas.splice(i,1);renderAreaTags();}
+function renderAreaTags(){
+  const box=$('areasTagBox');if(!box)return;
+  box.innerHTML=_areas.map((a,i)=>`<span class="tag">${a}<button class="tag-remove" onclick="removeArea(${i})">×</button></span>`).join('');
+}
+function addBaitRow(){
+  const b=$('baitEntryBody');if(!b)return;
+  const i=b.children.length+1;
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${i}</td>
+    <td><input type="text" style="width:90px;border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:.78rem" placeholder="Location"></td>
+    <td><select style="border:1px solid #ddd;border-radius:6px;padding:5px;font-size:.78rem"><option>Indoor</option><option>Outdoor</option><option>Drain</option></select></td>
+    <td><input type="number" style="width:60px;border:1px solid #ddd;border-radius:6px;padding:5px;font-size:.78rem" value="0"></td>
+    <td><input type="number" style="width:60px;border:1px solid #ddd;border-radius:6px;padding:5px;font-size:.78rem" value="0"></td>
+    <td><select style="border:1px solid #ddd;border-radius:6px;padding:5px;font-size:.78rem"><option value="good">Good</option><option value="damaged">Damaged</option><option value="replaced">Replaced</option></select></td>
+    <td><select style="border:1px solid #ddd;border-radius:6px;padding:5px;font-size:.78rem"><option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></td>
+    <td><button class="btn btn-xs btn-outline-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`;
+  b.appendChild(tr);
+}
+function addGenericRow(){
+  const b=$('genericEntryBody');if(!b)return;
+  const i=b.children.length+1;
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${i}</td>
+    <td><input type="text" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:6px 8px;font-size:.82rem" placeholder="Location"></td>
+    <td><input type="number" style="width:70px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:.82rem" value="0"></td>
+    <td><select style="border:1px solid #ddd;border-radius:6px;padding:6px;font-size:.82rem"><option value="ok">OK</option><option value="damaged">Damaged</option><option value="replaced">Replaced</option></select></td>
+    <td><button class="btn btn-xs btn-outline-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`;
+  b.appendChild(tr);
+}
+function addCustomTableRow(fieldId,colStr){
+  const cols=colStr.split(',');const b=$(`ctbl_${fieldId}`);if(!b)return;
+  const tr=document.createElement('tr');
+  tr.innerHTML=cols.map(c=>`<td><input type="text" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:.78rem" placeholder="${c}"></td>`).join('')+
+    `<td><button class="btn btn-xs btn-outline-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`;
+  b.appendChild(tr);
+}
+
+function saveGenericForm(){
+  const date=$('fDate')?.value;
+  if(!date){showToast('Please enter a date','error');return;}
+  const base={formType:curFormType,projectKey:curProject.key,userKey:CU.key,
+    date,time:$('fTime')?.value||'',remarks:$('fRemarks')?.value||'',
+    techSignature:getSig('techSigCanvas'),clientSignature:getSig('clientSigCanvas'),createdAt:Date.now()};
+
+  if(curFormType==='insecticide'){
+    Object.assign(base,{chemical:$('fChemical').value,batchNumber:$('fBatch').value,qty:$('fQty').value,water:$('fWater').value,remainingQty:$('fRemaining').value,areas:[..._areas]});
+  } else if(curFormType==='checklist'){
+    base.timeIn=$('fTimeIn').value;base.timeOut=$('fTimeOut').value;
+    base.activities=[...document.querySelectorAll('.chk-sel')].map(s=>({item:s.dataset.item,status:s.value}));
+  } else if(curFormType==='baitstation'){
+    base.baitBrand=$('fBaitBrand').value;base.totalStations=Number($('fTotalSt').value)||0;
+    base.activeStations=Number($('fActiveSt').value)||0;base.baitUsed=$('fBaitUsed').value;
+    base.entries=[...$('baitEntryBody').rows].map((r,i)=>{
+      const cells=r.querySelectorAll('input,select');
+      return{sr:i+1,location:cells[0]?.value||'',stationType:cells[1]?.value||'Indoor',baitConsumed:cells[2]?.value||'0',baitReplaced:cells[3]?.value||'0',condition:cells[4]?.value||'good',pestActivity:cells[5]?.value||'none'};
+    });
+  } else if(CUSTOM_FORMS.find(f=>f.key===curFormType)){
+    const cf=CUSTOM_FORMS.find(f=>f.key===curFormType);
+    const customData={};
+    cf.fields.forEach(field=>{
+      if(field.type==='signature')customData[field.id]=getSig(`cSig_${field.id}`);
+      else if(field.type==='checkbox')customData[field.id]=$(`cf_${field.id}`)?.checked||false;
+      else if(field.type==='table'){
+        const rows=[...(document.querySelectorAll(`#ctbl_${field.id} tr`))];
+        const cols=field.tableColumns||['Item','Value'];
+        customData[`tbl_${field.id}`]=rows.map(r=>{const obj={};[...r.querySelectorAll('input')].forEach((inp,i)=>{obj[cols[i]||i]=inp.value;});return obj;});
+      } else customData[field.id]=$(`cf_${field.id}`)?.value||'';
+    });
+    base.customData=customData;
+  } else {
+    base.entries=[...(($('genericEntryBody')||{rows:[]}).rows)].map((r,i)=>{
+      const cells=r.querySelectorAll('input,select');
+      return{sr:i+1,location:cells[0]?.value||'',count:parseInt(cells[1]?.value)||0,status:cells[2]?.value||'ok'};
+    });
+  }
+  _areas=[];
+  DB.ref('records').push(base).then(()=>{closeModal('formModal');showToast('Record saved!');}).catch(()=>showToast('Save failed','error'));
+}
+
+// ====================== RECORDS ======================
+let recFilterFrom='',recFilterTo='',recFilterType='';
+function renderRecords(){
+  let filtered=RECORDS;
+  if(CU.role==='staff')filtered=filtered.filter(r=>r.userKey===CU.key);
+  if(CU.role==='client')filtered=filtered.filter(r=>r.projectKey===CU.projectKey);
+  if(recFilterFrom)filtered=filtered.filter(r=>r.date>=recFilterFrom);
+  if(recFilterTo)filtered=filtered.filter(r=>r.date<=recFilterTo);
+  if(recFilterType)filtered=filtered.filter(r=>r.formType===recFilterType);
+  filtered=[...filtered].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const types=[...new Set(RECORDS.map(r=>r.formType))];
+
+  $('page-records').innerHTML=`
+    <div class="page-title"><i class="fas fa-file-alt"></i>Records</div>
+    <div class="card no-print"><div class="card-body">
+      <div class="form-row">
+        <div class="form-group-i"><label>From</label><input type="date" id="rFrom" value="${recFilterFrom}" onchange="recFilterFrom=this.value;renderRecords()"></div>
+        <div class="form-group-i"><label>To</label><input type="date" id="rTo" value="${recFilterTo}" onchange="recFilterTo=this.value;renderRecords()"></div>
+        <div class="form-group-i"><label>Type</label>
+          <select id="rType" onchange="recFilterType=this.value;renderRecords()">
+            <option value="">All Types</option>
+            ${types.map(t=>`<option value="${t}"${recFilterType===t?' selected':''}>${formName(t)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group-i" style="display:flex;align-items:flex-end"><button class="btn btn-outline" onclick="recFilterFrom='';recFilterTo='';recFilterType='';renderRecords()">Clear</button></div>
+      </div>
+    </div></div>
+    <div class="card"><div class="card-header"><span><i class="fas fa-list me-2"></i>${filtered.length} records</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Project</th><th>Type</th><th>By</th><th>Actions</th></tr></thead>
+    <tbody>${filtered.length?filtered.map(r=>{
+      const proj=PROJECTS.find(p=>p.key===r.projectKey),usr=USERS.find(u=>u.key===r.userKey);
+      return `<tr>
+        <td><strong>${fmtDate(r.date)}</strong></td>
+        <td>${proj?.name||'-'}</td>
+        <td><span class="badge badge-blue">${formName(r.formType)}</span>
+          ${r.location?.verified?'<i class="fas fa-map-marker-alt" style="color:var(--g);margin-left:5px;font-size:.75rem" title="GPS Verified"></i>':''}
+          ${(r.techSignature||r.clientSignature)?'<i class="fas fa-signature" style="color:var(--pu);margin-left:5px;font-size:.75rem" title="Signed"></i>':''}
+        </td>
+        <td>${usr?.name||'-'}</td>
+        <td><div style="display:flex;gap:6px">
+          <button class="btn btn-xs btn-outline-primary" onclick="viewRecord('${r.key}')"><i class="fas fa-eye"></i></button>
+          <button class="btn btn-xs btn-outline-success" onclick="printRecord('${r.key}')"><i class="fas fa-print"></i></button>
+          ${CU.role==='admin'?`<button class="btn btn-xs btn-outline-danger" onclick="deleteRecord('${r.key}')"><i class="fas fa-trash"></i></button>`:''}
+        </div></td>
+      </tr>`;
+    }).join(''):'<tr><td colspan="5" style="text-align:center;padding:40px;color:#bbb">No records found</td></tr>'}</tbody>
+    </table></div></div>`;
+}
+
+function viewRecord(key){
+  const r=RECORDS.find(x=>x.key===key);
+  if(!r)return;
+  $('viewModalBody').innerHTML=buildReportHTML(r);
+  openModal('viewModal');
+}
+function printRecord(key){
+  viewRecord(key);
+  setTimeout(()=>window.print(),600);
+}
+function deleteRecord(key){
+  if(!confirm('Delete this record?'))return;
+  DB.ref(`records/${key}`).remove().then(()=>showToast('Record deleted')).catch(()=>showToast('Delete failed','error'));
+}
+
+function buildReportHTML(r){
+  const proj=PROJECTS.find(p=>p.key===r.projectKey),usr=USERS.find(u=>u.key===r.userKey);
+  let content='';
+
+  if(r.formType==='attendance'){
+    content=`
+      ${r.location?.verified?`<div class="alert alert-success"><i class="fas fa-check-circle"></i>GPS Verified – ${r.location.distance}m from site (${(r.location.lat||0).toFixed(4)}, ${(r.location.lng||0).toFixed(4)})</div>`:''}
+      ${r.location?.skipped?`<div class="alert alert-info"><i class="fas fa-info-circle"></i>GPS Authentication Not Required</div>`:''}
+      <div class="sum-cards" style="grid-template-columns:1fr 1fr">
+        <div class="sum-card"><div class="sum-val">${r.timeIn||'—'}</div><div class="sum-lbl">Time In</div></div>
+        <div class="sum-card"><div class="sum-val">${r.timeOut||'—'}</div><div class="sum-lbl">Time Out</div></div>
+      </div>
+      <div style="background:#f8f9fa;border-radius:12px;padding:14px;margin-bottom:14px"><strong>Work Done:</strong><br><span style="color:#555">${r.work||'N/A'}</span></div>`;
+  } else if(r.formType==='insecticide'){
+    content=`
+      <div class="sum-cards">
+        <div class="sum-card"><div class="sum-val">${r.chemical||'-'}</div><div class="sum-lbl">Chemical</div></div>
+        <div class="sum-card"><div class="sum-val">${r.batchNumber||'-'}</div><div class="sum-lbl">Batch #</div></div>
+        <div class="sum-card"><div class="sum-val">${r.qty||'-'} ml</div><div class="sum-lbl">Qty Used</div></div>
+        <div class="sum-card"><div class="sum-val">${r.water||'-'} L</div><div class="sum-lbl">Water</div></div>
+        <div class="sum-card" style="${Number(r.remainingQty)<500&&r.remainingQty?'border-left-color:var(--r)':''}">
+          <div class="sum-val" style="${Number(r.remainingQty)<500&&r.remainingQty?'color:var(--r)':''}">${r.remainingQty||'-'} ml${Number(r.remainingQty)<500&&r.remainingQty?' ⚠':''}</div>
+          <div class="sum-lbl">Remaining Stock</div></div>
+      </div>
+      <div style="background:#f8f9fa;border-radius:12px;padding:14px;margin-bottom:14px">
+        <strong>Areas Treated:</strong><br>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${(r.areas||[]).map(a=>`<span class="badge badge-blue">${a}</span>`).join('')||'N/A'}</div>
+      </div>`;
+  } else if(r.formType==='checklist'){
+    content=`
+      <div class="sum-cards" style="grid-template-columns:1fr 1fr">
+        <div class="sum-card"><div class="sum-val">${r.timeIn||'—'}</div><div class="sum-lbl">Time In</div></div>
+        <div class="sum-card"><div class="sum-val">${r.timeOut||'—'}</div><div class="sum-lbl">Time Out</div></div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Activity</th><th>Status</th></tr></thead><tbody>
+        ${(r.activities||[]).map((a,i)=>`<tr><td>${i+1}</td><td>${a.item}</td><td>
+          <span class="badge ${a.status==='done'?'badge-green':a.status==='pending'?'badge-yellow':'badge-gray'}">${a.status==='done'?'✓ Done':a.status==='pending'?'⏳ Pending':'— N/A'}</span>
+        </td></tr>`).join('')}
+      </tbody></table></div>`;
+  } else if(r.formType==='baitstation'){
+    content=`
+      <div class="sum-cards">
+        <div class="sum-card"><div class="sum-val">${r.baitBrand||'-'}</div><div class="sum-lbl">Brand</div></div>
+        <div class="sum-card"><div class="sum-val">${r.totalStations||'-'}</div><div class="sum-lbl">Total Stations</div></div>
+        <div class="sum-card"><div class="sum-val">${r.activeStations||'-'}</div><div class="sum-lbl">Active Stations</div></div>
+        <div class="sum-card"><div class="sum-val">${r.baitUsed||'-'} g</div><div class="sum-lbl">Bait Used</div></div>
+      </div>
+      ${(r.entries||[]).length?`<div class="table-wrap"><table><thead><tr><th>#</th><th>Location</th><th>Type</th><th>Consumed</th><th>Replaced</th><th>Condition</th><th>Pest Activity</th></tr></thead>
+        <tbody>${(r.entries||[]).map(e=>`<tr><td>${e.sr}</td><td>${e.location}</td><td>${e.stationType}</td>
+          <td>${e.baitConsumed}g</td><td>${e.baitReplaced}g</td>
+          <td><span class="badge ${e.condition==='good'?'badge-green':'badge-yellow'}">${e.condition}</span></td>
+          <td><span class="badge ${e.pestActivity==='none'?'badge-gray':e.pestActivity==='high'?'badge-red':'badge-yellow'}">${e.pestActivity}</span></td>
+        </tr>`).join('')}</tbody></table></div>`:''}`;
+  } else if(r.customData){
+    content=Object.entries(r.customData).map(([k,v])=>{
+      if(k.startsWith('tbl_'))return'';
+      if(typeof v==='boolean')return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="width:20px;height:20px;border-radius:4px;background:${v?'var(--g)':'#ccc'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem">${v?'✓':'✗'}</span><span style="font-size:.88rem">${k}</span></div>`;
+      if(typeof v==='string'&&v.startsWith('data:image'))return`<div style="margin-bottom:12px"><p style="font-size:.72rem;color:#999;font-weight:700;text-transform:uppercase;margin-bottom:4px">${k}</p><img src="${v}" style="max-height:80px;border:1px solid #eee;border-radius:8px"></div>`;
+      return`<div style="background:#f8f9fa;border-radius:8px;padding:10px 14px;margin-bottom:8px"><p style="font-size:.7rem;color:#aaa;text-transform:uppercase;margin-bottom:2px">${k}</p><p style="font-weight:700;color:#333">${v||'-'}</p></div>`;
+    }).join('');
+  } else {
+    content=`<div class="table-wrap"><table><thead><tr><th>#</th><th>Location</th><th>Count</th><th>Status</th></tr></thead>
+      <tbody>${(r.entries||[]).map(e=>`<tr><td>${e.sr}</td><td>${e.location}</td><td>${e.count}</td>
+        <td><span class="badge ${e.status==='ok'?'badge-green':'badge-yellow'}">${e.status}</span></td>
+      </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:#bbb">No entries</td></tr>'}
+      </tbody></table></div>`;
+  }
+
+  const sigBlock=(label,src)=>src?
+    `<div><p style="font-size:.72rem;font-weight:700;color:#999;text-transform:uppercase;margin-bottom:6px">${label}</p>
+      <div style="border:2px solid #e9ecef;border-radius:10px;padding:8px;background:#fafafa"><img src="${src}" style="max-height:72px;display:block;margin:0 auto"></div>
+      <div class="sig-block"><p>${label}</p></div></div>`:
+    `<div><p style="font-size:.72rem;font-weight:700;color:#999;text-transform:uppercase;margin-bottom:6px">${label}</p>
+      <div style="border:2px dashed #e9ecef;border-radius:10px;height:72px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px"><p style="color:#ddd;font-size:.72rem">Not signed</p></div>
+      <div class="sig-block"><p>${label}</p></div></div>`;
+
+  return `<div class="report-wrap">
+    <div class="report-hdr">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+            <div style="width:42px;height:42px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center"><i class="fas fa-bug" style="font-size:1.2rem"></i></div>
+            <div><h2>${COMPANY.name}</h2><small>Integrated Pest Management Services</small></div>
+          </div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.55)">${COMPANY.address}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:.75rem;color:rgba(255,255,255,.6);margin-bottom:8px"><div>${COMPANY.phone}</div><div>${COMPANY.email}</div></div>
+          <div class="report-ref">REF: ${(r.key||'').slice(0,8).toUpperCase()}</div>
+        </div>
+      </div>
+    </div>
+    <div class="report-title-bar">
+      <h4><i class="fas fa-${formIcon(r.formType)} me-2"></i>${formName(r.formType)} Report</h4>
+      <span style="font-size:.82rem;color:#666">${fmtDate(r.date)}</span>
+    </div>
+    <div class="report-body">
+      <div class="info-grid info-grid-4" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+        ${[['Project',proj?.name],['Client',proj?.client],['Date',fmtDate(r.date)],['Submitted By',usr?.name],['Address',proj?.address],['Contact',proj?.contact]].filter(([,v])=>v).map(([l,v])=>`<div class="info-item"><label>${l}</label><span>${v||'-'}</span></div>`).join('')}
+      </div>
+      ${content}
+      ${r.remarks?`<div class="alert alert-warning" style="margin-top:12px"><strong>Remarks:</strong> ${r.remarks}</div>`:''}
+      ${(r.techSignature||r.clientSignature)?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;padding-top:16px;border-top:1.5px solid #f0f0f0">
+        ${sigBlock('Technician Signature',r.techSignature)}${sigBlock('Client / Supervisor Signature',r.clientSignature)}
+      </div>`:''}
+      <div class="rpt-footer"><span>${COMPANY.address}</span><span>Generated: ${fmtDT(Date.now())}</span></div>
+    </div>
+  </div>`;
+}
+
+// ====================== MONTHLY REPORTS ======================
+let rptProject='',rptMonth=new Date().toISOString().slice(0,7),rptTab='overview';
+let rptCharts={};
+
+function renderReports(){
+  const myProj=CU.role==='client'?PROJECTS.filter(p=>p.key===CU.projectKey):CU.role==='staff'?PROJECTS.filter(p=>(CU.projects||[]).includes(p.key)):PROJECTS.filter(p=>p.active);
+  if(!rptProject&&myProj.length)rptProject=myProj[0].key;
+  const proj=PROJECTS.find(p=>p.key===rptProject);
+  const filtered=RECORDS.filter(r=>r.projectKey===rptProject&&r.date?.startsWith(rptMonth));
+  const [yr,mo]=rptMonth.split('-').map(Number);
+  const daysInMonth=new Date(yr,mo,0).getDate();
+
+  const insRec=filtered.filter(r=>r.formType==='insecticide');
+  const baitRec=filtered.filter(r=>r.formType==='baitstation');
+  const attRec=filtered.filter(r=>r.formType==='attendance');
+  const typeCnt={};filtered.forEach(r=>{typeCnt[r.formType]=(typeCnt[r.formType]||0)+1;});
+  const allTypes=[...new Set(filtered.map(r=>r.formType))];
+
+  const weekData=[1,2,3,4].map(w=>{const s=(w-1)*7+1,e=w*7;return{w:`Wk${w}`,count:filtered.filter(r=>{const d=parseInt(r.date?.split('-')[2]||'0');return d>=s&&d<=e;}).length};});
+
+  $('page-reports').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+      <div class="page-title" style="margin:0"><i class="fas fa-chart-bar"></i>Monthly Reports & Trend Analysis</div>
+      <button class="btn btn-outline-primary no-print" onclick="window.print()"><i class="fas fa-print"></i>Print Report</button>
+    </div>
+
+    ${proj?`<div class="hidden-print" style="background:#f0f4ff;border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div><strong style="color:var(--p);font-size:1.1rem">${COMPANY.name}</strong> – Monthly IPM Progress Report<br><span style="color:#888;font-size:.82rem">${proj.name} · ${proj.client} · ${rptMonth}</span></div>
+      <div style="font-size:.8rem;color:#aaa">${COMPANY.phone} · ${COMPANY.email}</div>
+    </div>`:''}
+
+    <div class="card no-print"><div class="card-body">
+      <div class="form-row">
+        <div class="form-group-i"><label>Project</label>
+          <select onchange="rptProject=this.value;renderReports()">
+            ${myProj.map(p=>`<option value="${p.key}"${rptProject===p.key?' selected':''}>${p.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group-i"><label>Month</label>
+          <input type="month" value="${rptMonth}" onchange="rptMonth=this.value;renderReports()">
+        </div>
+      </div>
+    </div></div>
+
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+      ${[{l:'Total Entries',v:filtered.length,c:'blue'},{l:'Attendance',v:attRec.length,c:'green'},{l:'Insecticide',v:insRec.length,c:'orange'},{l:'Bait Station',v:baitRec.length,c:'purple'}]
+        .map(s=>`<div class="stat-card"><div class="stat-icon ${s.c}"><i class="fas fa-file-alt"></i></div><div><div class="stat-val">${s.v}</div><div class="stat-lbl">${s.l}</div></div></div>`).join('')}
+    </div>
+
+    <div class="tab-bar no-print">
+      ${['overview','trend','insecticide','baitstation','attendance'].map(t=>`
+        <button class="tab-btn${rptTab===t?' active':''}" onclick="rptTab='${t}';renderReports()">
+          <i class="fas fa-${t==='overview'?'tachometer-alt':t==='trend'?'chart-line':t==='insecticide'?'spray-can':t==='baitstation'?'box':'clipboard-user'}"></i>
+          ${t.charAt(0).toUpperCase()+t.slice(1).replace('baitstation','Bait Station')}
+        </button>`).join('')}
+    </div>
+
+    <div id="rptTabContent"></div>`;
+
+  // Render active tab
+  const tc=$('rptTabContent');
+
+  if(rptTab==='overview'){
+    tc.innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="chart-box"><h5><i class="fas fa-chart-pie"></i>Activity Distribution</h5><canvas id="rptPieChart" height="220"></canvas></div>
+        <div class="chart-box"><h5><i class="fas fa-chart-bar"></i>Weekly Activity</h5><canvas id="rptWeekChart" height="150"></canvas>
+          <div style="margin-top:12px">
+            ${allTypes.slice(0,6).map(ft=>{
+              const cnt=filtered.filter(r=>r.formType===ft).length;
+              const pct=filtered.length?Math.round(cnt/filtered.length*100):0;
+              return`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <span style="font-size:.78rem;color:#555">${formName(ft)}</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:80px;background:#f0f0f0;border-radius:4px;height:6px"><div style="width:${pct}%;background:var(--p);border-radius:4px;height:6px"></div></div>
+                  <span style="font-size:.75rem;font-weight:700;color:var(--p);min-width:16px">${cnt}</span>
+                </div></div>`;}).join('')}
+          </div>
+        </div>
+      </div>`;
+    setTimeout(()=>{
+      const pd=Object.entries(typeCnt).map(([k,v])=>({name:formName(k),value:v}));
+      if(pd.length){
+        new Chart($('rptPieChart').getContext('2d'),{type:'doughnut',data:{labels:pd.map(d=>d.name),datasets:[{data:pd.map(d=>d.value),backgroundColor:COLORS,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12}}}}});
+      }
+      new Chart($('rptWeekChart').getContext('2d'),{type:'bar',data:{labels:weekData.map(d=>d.w),datasets:[{label:'Records',data:weekData.map(d=>d.count),backgroundColor:'#003d7a',borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+    },100);
+
+  } else if(rptTab==='trend'){
+    const activeDays=[];
+    for(let d=1;d<=daysInMonth;d++){
+      const ds=`${rptMonth}-${String(d).padStart(2,'0')}`,dr=filtered.filter(r=>r.date===ds);
+      if(dr.length)activeDays.push({day:String(d),...Object.fromEntries(Object.keys(BUILTIN_FORMS).map(k=>[formName(k),dr.filter(r=>r.formType===k).length]))});
+    }
+    tc.innerHTML=`
+      <div class="chart-box"><h5><i class="fas fa-chart-line"></i>Daily Activity Trend – ${rptMonth}</h5>
+        ${activeDays.length?`<canvas id="rptTrendChart" height="200"></canvas>`:`<div style="text-align:center;padding:40px;color:#bbb;font-size:.9rem">No data for this period</div>`}
+      </div>
+      ${allTypes.map(ft=>{
+        const ftRec=filtered.filter(r=>r.formType===ft);
+        if(!ftRec.length)return'';
+        return`<div class="card"><div class="card-header"><i class="fas fa-${formIcon(ft)} me-2"></i>${formName(ft)} – ${ftRec.length} records</div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>By</th><th>Details</th><th>Remarks</th></tr></thead>
+          <tbody>${ftRec.map(r=>{
+            const usr=USERS.find(u=>u.key===r.userKey);
+            let det='';
+            if(ft==='attendance')det=`In:${r.timeIn||'-'} Out:${r.timeOut||'-'}${r.location?.verified?' ✓GPS':''}`;
+            else if(ft==='insecticide')det=`${r.chemical||'-'} · ${r.qty}ml · Batch:${r.batchNumber||'-'} · Rem:${r.remainingQty||'-'}ml`;
+            else if(ft==='baitstation')det=`${r.baitBrand||'-'} · Active:${r.activeStations}/${r.totalStations} · Used:${r.baitUsed}g`;
+            else if(ft==='checklist')det=`Done:${(r.activities||[]).filter(a=>a.status==='done').length}/${(r.activities||[]).length}`;
+            else det=`${(r.entries||[]).length} entries`;
+            return`<tr><td>${fmtDate(r.date)}</td><td>${usr?.name||'-'}</td><td style="font-size:.8rem;color:#666">${det}</td><td style="font-size:.78rem;color:#aaa">${r.remarks||'-'}</td></tr>`;
+          }).join('')}</tbody></table></div></div>`;
+      }).join('')}`;
+    setTimeout(()=>{
+      if(activeDays.length&&$('rptTrendChart')){
+        const keys=['Attendance','Insecticide Log','Glue Box','EFK Monitoring','Checklist','Bait Station'];
+        new Chart($('rptTrendChart').getContext('2d'),{type:'line',data:{labels:activeDays.map(d=>d.day),
+          datasets:keys.filter(k=>activeDays.some(d=>d[k]>0)).map((k,i)=>({label:k,data:activeDays.map(d=>d[k]||0),borderColor:COLORS[i],backgroundColor:COLORS[i]+'20',tension:.4,fill:true,borderWidth:2,pointRadius:3}))},
+          options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{stepSize:1}}},plugins:{legend:{labels:{font:{size:10}}}}}});
+      }
+    },100);
+
+  } else if(rptTab==='insecticide'){
+    const insTrend=insRec.map(r=>({date:fmtDate(r.date),qty:Number(r.qty)||0,rem:Number(r.remainingQty)||0}));
+    tc.innerHTML=`
+      ${insRec.length?`<div class="chart-box"><h5><i class="fas fa-spray-can"></i>Insecticide Usage & Remaining Stock</h5><canvas id="insChart" height="200"></canvas></div>`:''}
+      <div class="card"><div class="card-header orange"><i class="fas fa-spray-can me-2"></i>Insecticide Log</div>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>By</th><th>Chemical</th><th>Batch #</th><th>Qty Used</th><th>Water</th><th>Remaining</th><th>Areas</th></tr></thead>
+        <tbody>${insRec.length?insRec.map(r=>{const usr=USERS.find(u=>u.key===r.userKey);const low=Number(r.remainingQty)<500;
+          return`<tr><td>${fmtDate(r.date)}</td><td>${usr?.name||'-'}</td><td><strong>${r.chemical||'-'}</strong></td>
+            <td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:.75rem">${r.batchNumber||'-'}</code></td>
+            <td>${r.qty||'-'} ml</td><td>${r.water||'-'} L</td>
+            <td><span class="badge ${low?'badge-red':'badge-green'}">${r.remainingQty||'-'} ml${low?' ⚠':''}</span></td>
+            <td style="font-size:.78rem;color:#888">${(r.areas||[]).join(', ')||'-'}</td></tr>`}).join('')
+          :'<tr><td colspan="8" style="text-align:center;padding:30px;color:#bbb">No insecticide records this month</td></tr>'}
+        </tbody></table></div></div>`;
+    setTimeout(()=>{if(insRec.length&&$('insChart')){
+      new Chart($('insChart').getContext('2d'),{type:'bar',data:{labels:insTrend.map(d=>d.date),datasets:[
+        {label:'Qty Used (ml)',data:insTrend.map(d=>d.qty),backgroundColor:'#fd7e14',borderRadius:4},
+        {label:'Remaining (ml)',data:insTrend.map(d=>d.rem),backgroundColor:'#28a745',borderRadius:4}]},
+        options:{responsive:true,scales:{y:{beginAtZero:true}},plugins:{legend:{labels:{font:{size:11}}}}}});
+    }},100);
+
+  } else if(rptTab==='baitstation'){
+    const baitTrend=baitRec.map(r=>({date:fmtDate(r.date),active:r.activeStations||0,total:r.totalStations||0,baitUsed:Number(r.baitUsed)||0}));
+    tc.innerHTML=`
+      ${baitRec.length?`<div class="chart-box"><h5><i class="fas fa-box"></i>Bait Station Trend</h5><canvas id="baitChart" height="180"></canvas></div>`:''}
+      <div class="card"><div class="card-header purple"><i class="fas fa-box me-2"></i>Bait Station Records</div>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>By</th><th>Brand</th><th>Total</th><th>Active</th><th>Bait Used</th><th>Remarks</th></tr></thead>
+        <tbody>${baitRec.length?baitRec.map(r=>{const usr=USERS.find(u=>u.key===r.userKey);
+          return`<tr><td>${fmtDate(r.date)}</td><td>${usr?.name||'-'}</td><td><strong>${r.baitBrand||'-'}</strong></td>
+            <td>${r.totalStations||'-'}</td><td><span class="badge badge-green">${r.activeStations||'-'}</span></td>
+            <td>${r.baitUsed||'-'} g</td><td style="font-size:.78rem;color:#aaa">${r.remarks||'-'}</td></tr>`}).join('')
+          :'<tr><td colspan="7" style="text-align:center;padding:30px;color:#bbb">No bait station records this month</td></tr>'}
+        </tbody></table></div></div>`;
+    setTimeout(()=>{if(baitRec.length&&$('baitChart')){
+      new Chart($('baitChart').getContext('2d'),{type:'line',data:{labels:baitTrend.map(d=>d.date),datasets:[
+        {label:'Active Stations',data:baitTrend.map(d=>d.active),borderColor:'#6f42c1',tension:.4,borderWidth:2},
+        {label:'Total Stations',data:baitTrend.map(d=>d.total),borderColor:'#dee2e6',borderDash:[4,4],tension:.4,borderWidth:2},
+        {label:'Bait Used (g)',data:baitTrend.map(d=>d.baitUsed),borderColor:'#fd7e14',tension:.4,borderWidth:2}]},
+        options:{responsive:true,scales:{y:{beginAtZero:true}},plugins:{legend:{labels:{font:{size:10}}}}}});
+    }},100);
+
+  } else if(rptTab==='attendance'){
+    tc.innerHTML=`<div class="card"><div class="card-header green"><i class="fas fa-clipboard-user me-2"></i>Attendance Records</div>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Staff</th><th>Time In</th><th>Time Out</th><th>GPS</th><th>Work Done</th><th>Remarks</th></tr></thead>
+      <tbody>${attRec.length?attRec.map(r=>{const usr=USERS.find(u=>u.key===r.userKey);
+        return`<tr><td><strong>${fmtDate(r.date)}</strong></td><td>${usr?.name||'-'}</td><td>${r.timeIn||'-'}</td><td>${r.timeOut||'-'}</td>
+          <td>${r.location?.verified?`<span class="badge badge-green">✓ ${r.location.distance}m</span>`:r.location?.skipped?`<span class="badge badge-gray">Skipped</span>`:`<span class="badge badge-red">—</span>`}</td>
+          <td style="font-size:.78rem;color:#666;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.work||'-'}</td>
+          <td style="font-size:.75rem;color:#aaa">${r.remarks||'-'}</td></tr>`}).join('')
+        :'<tr><td colspan="7" style="text-align:center;padding:30px;color:#bbb">No attendance records this month</td></tr>'}
+      </tbody></table></div></div>`;
+  }
+}
+
+// ====================== INVENTORY ======================
+let invTab='products',invMonth=new Date().toISOString().slice(0,7),invSearch='',invCat='',invTrendProd='';
+
+function getProductsWithStock(){
+  return PRODUCTS.map(prod=>{
+    let stock=Number(prod.openingStock)||0;
+    STOCK_LOGS.filter(l=>l.productKey===prod.key).forEach(l=>{
+      if(l.type==='add')stock+=Number(l.qty)||0;
+      else if(l.type==='usage')stock-=Number(l.qty)||0;
+      else if(l.type==='adjust')stock=Number(l.qty)||0;
+    });
+    return{...prod,currentStock:Math.max(0,stock)};
+  });
+}
+
+function renderInventory(){
+  const pwStock=getProductsWithStock();
+  const filtered=pwStock.filter(p=>{
+    const mQ=!invSearch||p.name?.toLowerCase().includes(invSearch.toLowerCase())||p.brand?.toLowerCase().includes(invSearch.toLowerCase());
+    const mC=!invCat||p.category===invCat;
+    return mQ&&mC;
+  });
+  const monthLogs=STOCK_LOGS.filter(l=>l.date?.startsWith(invMonth));
+  const totalUsage=monthLogs.filter(l=>l.type==='usage').reduce((s,l)=>s+Number(l.qty||0),0);
+  const totalIn=monthLogs.filter(l=>l.type==='add').reduce((s,l)=>s+Number(l.qty||0),0);
+  const lowStock=pwStock.filter(p=>p.active&&(p.currentStock??0)<(p.minStock??0));
+  const isAdmin=CU.role==='admin';
+
+  $('page-inventory').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+      <div class="page-title" style="margin:0"><i class="fas fa-warehouse"></i>Central Inventory</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${(isAdmin||CU.role==='staff')?`<button class="btn btn-orange" onclick="openUsageModal()"><i class="fas fa-minus-circle"></i>Log Usage</button>`:''}
+        ${isAdmin?`<button class="btn btn-primary" onclick="openProductModal()"><i class="fas fa-plus"></i>Add Product</button>
+          <button class="btn btn-outline-primary no-print" onclick="window.print()"><i class="fas fa-print"></i>Print Report</button>`:''}
+      </div>
+    </div>
+
+    ${lowStock.length?`<div class="low-stock-bar"><i class="fas fa-exclamation-triangle"></i><div>
+      <strong style="color:var(--r)">⚠ Low Stock Alert (${lowStock.length} product${lowStock.length>1?'s':''})</strong>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${lowStock.map(p=>`<span class="badge badge-red" style="animation:pulse 1.5s infinite">${p.name}: ${p.currentStock} ${p.unit} (min: ${p.minStock})</span>`).join('')}</div>
+    </div></div>`:''}
+
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      ${[{l:'Total Products',v:PRODUCTS.filter(p=>p.active).length,i:'box-open',c:'blue'},
+         {l:'Low Stock Items',v:lowStock.length,i:'exclamation-triangle',c:'red'},
+         {l:'Month Usage',v:`${totalUsage} units`,i:'spray-can',c:'orange'},
+         {l:'Month Stock-In',v:`${totalIn} units`,i:'plus-circle',c:'green'}]
+        .map(s=>`<div class="stat-card"><div class="stat-icon ${s.c}"><i class="fas fa-${s.i}"></i></div><div><div class="stat-val" style="font-size:1.4rem">${s.v}</div><div class="stat-lbl">${s.l}</div></div></div>`).join('')}
+    </div>
+
+    <div class="card no-print"><div class="card-body">
+      <div class="form-row">
+        <div class="form-group-i"><label>Month</label><input type="month" value="${invMonth}" onchange="invMonth=this.value;renderInventory()"></div>
+        <div class="form-group-i"><label>Search</label><input type="text" value="${invSearch}" placeholder="Search products..." oninput="invSearch=this.value;renderInventory()"></div>
+        <div class="form-group-i"><label>Category</label>
+          <select onchange="invCat=this.value;renderInventory()">
+            <option value="">All</option>${['Insecticide','Rodenticide','Bait','Equipment','PPE','Other'].map(c=>`<option${invCat===c?' selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        ${invSearch||invCat?`<div class="form-group-i" style="display:flex;align-items:flex-end"><button class="btn btn-outline" onclick="invSearch='';invCat='';renderInventory()">Clear</button></div>`:''}
+      </div>
+    </div></div>
+
+    <div class="tab-bar no-print">
+      ${['products','log','usage','trend'].map(t=>`<button class="tab-btn${invTab===t?' active':''}" onclick="invTab='${t}';renderInventory()">
+        <i class="fas fa-${t==='products'?'box-open':t==='log'?'list-alt':t==='usage'?'spray-can':'chart-line'}"></i>
+        ${t==='products'?'Products':t==='log'?'Stock Log':t==='usage'?'Usage Log':'Trend Analysis'}
+      </button>`).join('')}
+    </div>
+
+    <div id="invTabContent"></div>
+
+    <!-- Print Report (hidden on screen) -->
+    <div class="hidden" id="invPrintReport" style="display:none"></div>`;
+
+  // Build print report content
+  buildInvPrintReport(pwStock,monthLogs);
+
+  const tc=$('invTabContent');
+
+  if(invTab==='products'){
+    tc.innerHTML=`<div class="card"><div class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Brand</th><th>SKU</th><th>Unit</th><th>Stock</th><th>Min Alert</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${filtered.length?filtered.map(p=>{const low=p.active&&(p.currentStock??0)<(p.minStock??0);
+        return`<tr style="${low?'background:#fff5f5':''}">
+          <td><div style="font-weight:700">${p.name}</div>${p.notes?`<div style="font-size:.72rem;color:#aaa;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.notes}</div>`:''}</td>
+          <td><span class="badge badge-blue">${p.category}</span></td>
+          <td>${p.brand||'-'}</td>
+          <td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:.72rem">${p.sku||'-'}</code></td>
+          <td style="font-weight:700;color:#666">${p.unit}</td>
+          <td><span style="font-size:1.6rem;font-weight:900;color:${low?'var(--r)':'var(--p)'}">${p.currentStock??0}</span><span style="font-size:.72rem;color:#aaa;margin-left:3px">${p.unit}</span></td>
+          <td style="color:#aaa;font-size:.82rem">${p.minStock??0} ${p.unit}</td>
+          <td>${low?`<span class="badge badge-red" style="animation:pulse 1.5s infinite">⚠ Low</span>`:`<span class="badge badge-green">✓ OK</span>`}${!p.active?`<span class="badge badge-gray" style="margin-left:4px">Inactive</span>`:''}</td>
+          <td><div style="display:flex;gap:5px">
+            ${isAdmin?`<button class="btn btn-xs btn-outline-success" onclick="openStockModal('${p.key}')" title="Adjust Stock"><i class="fas fa-plus-minus"></i></button>
+              <button class="btn btn-xs btn-outline-primary" onclick="openProductModal('${p.key}')" title="Edit"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-xs btn-outline-danger" onclick="deleteProduct('${p.key}')" title="Delete"><i class="fas fa-trash"></i></button>`:''}
+            <button class="btn btn-xs btn-outline-purple" onclick="invTrendProd='${p.key}';invTab='trend';renderInventory()" title="Trend"><i class="fas fa-chart-line"></i></button>
+          </div></td>
+        </tr>`;}).join(''):'<tr><td colspan="9" style="text-align:center;padding:40px;color:#bbb">'+(PRODUCTS.length===0?'No products yet. Click "Add Product" to get started.':'No products match your search.')+'</td></tr>'}
+      </tbody></table></div></div>`;
+
+  } else if(invTab==='log'){
+    const usageByProd=pwStock.map(p=>({name:p.name.length>14?p.name.slice(0,14)+'…':p.name,usage:monthLogs.filter(l=>l.productKey===p.key&&l.type==='usage').reduce((s,l)=>s+Number(l.qty||0),0),received:monthLogs.filter(l=>l.productKey===p.key&&l.type==='add').reduce((s,l)=>s+Number(l.qty||0),0)})).filter(d=>d.usage>0||d.received>0);
+    tc.innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="chart-box"><h5><i class="fas fa-chart-bar"></i>Usage vs Stock-In – ${invMonth}</h5><canvas id="invLogChart" height="220"></canvas></div>
+        <div class="chart-box"><h5><i class="fas fa-list"></i>Stock Summary</h5>
+          <div style="max-height:200px;overflow-y:auto">
+            ${pwStock.filter(p=>p.active).map(p=>{const used=monthLogs.filter(l=>l.productKey===p.key&&l.type==='usage').reduce((s,l)=>s+Number(l.qty||0),0),received=monthLogs.filter(l=>l.productKey===p.key&&l.type==='add').reduce((s,l)=>s+Number(l.qty||0),0),low=(p.currentStock??0)<(p.minStock??0);
+              return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5f5f5;${low?'background:#fff5f5;border-radius:8px;padding:8px':''}">
+                <div><div style="font-weight:700;font-size:.82rem">${p.name}</div><div style="font-size:.72rem;color:#aaa">Used:${used} · In:${received} ${p.unit}</div></div>
+                <div style="text-align:right"><div style="font-size:1.4rem;font-weight:900;color:${low?'var(--r)':'var(--p)'}">${p.currentStock??0}</div><div style="font-size:.68rem;color:#aaa">${p.unit}</div></div>
+              </div>`;}).join('')||'<p style="text-align:center;color:#bbb;padding:20px">No active products</p>'}
+          </div>
+        </div>
+      </div>
+      <div class="card"><div class="card-header"><i class="fas fa-list-alt me-2"></i>All Transactions – ${invMonth}</div>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Product</th><th>Type</th><th>Qty</th><th>Project</th><th>By</th><th>Batch #</th><th>Supplier</th><th>Notes</th></tr></thead>
+        <tbody>${monthLogs.length?[...monthLogs].sort((a,b)=>b.date>a.date?1:-1).map(l=>{
+          const prod=pwStock.find(p=>p.key===l.productKey),proj=PROJECTS.find(p=>p.key===l.projectKey),usr=USERS.find(u=>u.key===l.userKey);
+          return`<tr><td><strong>${fmtDate(l.date)}</strong></td><td><strong>${prod?.name||'-'}</strong></td>
+            <td><span class="badge ${l.type==='add'?'badge-green':l.type==='usage'?'badge-orange':'badge-blue'}">${l.type==='add'?'📦 Stock In':l.type==='usage'?'🔧 Usage':'⚙ Adjust'}</span></td>
+            <td><strong>${l.qty}</strong> <span style="font-size:.72rem;color:#aaa">${prod?.unit||''}</span></td>
+            <td>${proj?.name||'-'}</td><td>${usr?.name||(l.entryType==='admin_adjustment'?'Admin':'-')}</td>
+            <td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:.72rem">${l.batchNo||'-'}</code></td>
+            <td>${l.supplier||'-'}</td><td style="font-size:.75rem;color:#aaa">${l.notes||'-'}</td></tr>`;}).join('')
+          :'<tr><td colspan="9" style="text-align:center;padding:30px;color:#bbb">No transactions in '+invMonth+'</td></tr>'}
+        </tbody></table></div></div>`;
+    setTimeout(()=>{if(usageByProd.length&&$('invLogChart')){
+      new Chart($('invLogChart').getContext('2d'),{type:'bar',data:{labels:usageByProd.map(d=>d.name),datasets:[
+        {label:'Used',data:usageByProd.map(d=>d.usage),backgroundColor:'#fd7e14',borderRadius:4},
+        {label:'Received',data:usageByProd.map(d=>d.received),backgroundColor:'#28a745',borderRadius:4}]},
+        options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{stepSize:1}}},plugins:{legend:{labels:{font:{size:10}}}}}});
+    }else if($('invLogChart')){$('invLogChart').parentElement.innerHTML+='<p style="text-align:center;color:#bbb;font-size:.85rem;margin-top:20px">No data for '+invMonth+'</p>';}},100);
+
+  } else if(invTab==='usage'){
+    const usageLogs=monthLogs.filter(l=>l.type==='usage');
+    tc.innerHTML=`<div class="card"><div class="card-header orange"><span><i class="fas fa-spray-can me-2"></i>Usage Records – ${invMonth}</span>
+      ${CU.role!=='client'?`<button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="openUsageModal()"><i class="fas fa-plus"></i>Log Usage</button>`:''}
+    </div>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Product</th><th>Qty Used</th><th>Project</th><th>Technician</th><th>Batch #</th><th>Notes</th></tr></thead>
+      <tbody>${usageLogs.length?[...usageLogs].sort((a,b)=>b.date>a.date?1:-1).map(l=>{
+        const prod=pwStock.find(p=>p.key===l.productKey),proj=PROJECTS.find(p=>p.key===l.projectKey),usr=USERS.find(u=>u.key===l.userKey);
+        return`<tr><td><strong>${fmtDate(l.date)}</strong></td><td><strong>${prod?.name||'-'}</strong></td>
+          <td><span style="font-size:1.3rem;font-weight:900;color:var(--o)">${l.qty}</span> <span style="font-size:.72rem;color:#aaa">${prod?.unit||''}</span></td>
+          <td>${proj?.name||'-'}</td><td>${usr?.name||'-'}</td>
+          <td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:.72rem">${l.batchNo||'-'}</code></td>
+          <td style="font-size:.75rem;color:#aaa">${l.notes||'-'}</td></tr>`;}).join('')
+        :'<tr><td colspan="7" style="text-align:center;padding:30px;color:#bbb">No usage records for '+invMonth+'</td></tr>'}
+      </tbody></table></div></div>`;
+
+  } else if(invTab==='trend'){
+    const trendProd=pwStock.find(p=>p.key===invTrendProd);
+    const usageByProd2=pwStock.map(p=>({name:p.name.length>16?p.name.slice(0,16)+'…':p.name,usage:monthLogs.filter(l=>l.productKey===p.key&&l.type==='usage').reduce((s,l)=>s+Number(l.qty||0),0),received:monthLogs.filter(l=>l.productKey===p.key&&l.type==='add').reduce((s,l)=>s+Number(l.qty||0),0)})).filter(d=>d.usage>0||d.received>0);
+
+    let trendData=[];
+    if(trendProd){
+      const [yr2,mo2]=invMonth.split('-').map(Number);
+      const days=new Date(yr2,mo2,0).getDate();
+      let runStock=Number(trendProd.openingStock)||0;
+      STOCK_LOGS.filter(l=>l.productKey===invTrendProd&&l.date<`${invMonth}-01`).sort((a,b)=>a.date>b.date?1:-1).forEach(l=>{
+        if(l.type==='add')runStock+=Number(l.qty)||0;
+        else if(l.type==='usage')runStock-=Number(l.qty)||0;
+        else if(l.type==='adjust')runStock=Number(l.qty)||0;
+      });
+      for(let d=1;d<=days;d++){
+        const ds=`${invMonth}-${String(d).padStart(2,'0')}`;
+        const dayLogs=STOCK_LOGS.filter(l=>l.productKey===invTrendProd&&l.date===ds);
+        let used=0,recv=0;
+        dayLogs.forEach(l=>{if(l.type==='add'){runStock+=Number(l.qty)||0;recv+=Number(l.qty)||0;}else if(l.type==='usage'){runStock-=Number(l.qty)||0;used+=Number(l.qty)||0;}else if(l.type==='adjust')runStock=Number(l.qty)||0;});
+        if(dayLogs.length>0||d===1)trendData.push({day:`D${d}`,stock:Math.max(0,runStock),used,recv,min:trendProd.minStock??0});
+      }
+    }
+
+    tc.innerHTML=`
+      <div class="card"><div class="card-body">
+        <div class="form-group-i"><label>Select Product for Trend Analysis</label>
+          <select onchange="invTrendProd=this.value;renderInventory()">
+            <option value="">-- Select Product --</option>
+            ${pwStock.filter(p=>p.active).map(p=>`<option value="${p.key}"${invTrendProd===p.key?' selected':''}>${p.name} — Stock: ${p.currentStock??0} ${p.unit}</option>`).join('')}
+          </select>
+        </div>
+      </div></div>
+
+      ${!invTrendProd?`<div class="chart-box"><h5><i class="fas fa-chart-bar"></i>All Products – Usage Comparison (${invMonth})</h5>
+        ${usageByProd2.length?`<canvas id="allProdChart" height="300"></canvas>`:`<div style="text-align:center;padding:40px;color:#bbb">No usage data for ${invMonth}. Log some usage first.</div>`}
+      </div>`:''}
+
+      ${trendProd?`
+        <div class="stat-card" style="margin-bottom:16px;border:2px solid ${(trendProd.currentStock??0)<(trendProd.minStock??0)?'var(--r)':'var(--g)'}">
+          <div class="stat-icon ${(trendProd.currentStock??0)<(trendProd.minStock??0)?'red':'green'}"><i class="fas fa-box-open"></i></div>
+          <div style="flex:1">
+            <div style="font-weight:900;font-size:1rem;color:#222">${trendProd.name}</div>
+            <div style="font-size:.78rem;color:#888">${trendProd.category} · ${trendProd.brand||'—'} · SKU: ${trendProd.sku||'—'}</div>
+            ${(trendProd.currentStock??0)<(trendProd.minStock??0)?`<div style="margin-top:6px;background:#fff0f0;color:var(--r);border-radius:8px;padding:6px 10px;font-size:.78rem;font-weight:700"><i class="fas fa-exclamation-triangle me-1"></i>⚠ Stock below minimum! Please reorder immediately.</div>`:''}
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center">
+            ${[['Current Stock',`${trendProd.currentStock??0} ${trendProd.unit}`,(trendProd.currentStock??0)<(trendProd.minStock??0)?'var(--r)':'var(--g)'],
+               ['Min Alert',`${trendProd.minStock??0} ${trendProd.unit}`,'var(--o)'],
+               ['Month Usage',`${monthLogs.filter(l=>l.productKey===trendProd.key&&l.type==='usage').reduce((s,l)=>s+Number(l.qty||0),0)} ${trendProd.unit}`,'var(--p)']].map(([l,v,c])=>`<div style="background:#f8f9fa;border-radius:10px;padding:10px"><div style="font-size:1rem;font-weight:900;color:${c}">${v}</div><div style="font-size:.7rem;color:#aaa">${l}</div></div>`).join('')}
+          </div>
+        </div>
+        <div class="chart-box"><h5><i class="fas fa-chart-area"></i>Stock Level Trend – ${invMonth}</h5>
+          ${trendData.length?`<canvas id="trendChart" height="250"></canvas>`:`<div style="text-align:center;padding:40px;color:#bbb">No transactions recorded for ${invMonth}</div>`}
+        </div>
+        <div class="card"><div class="card-header gray"><i class="fas fa-history me-2"></i>Full Transaction History – ${trendProd.name}</div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Qty</th><th>Project</th><th>By</th><th>Batch #</th><th>Notes</th></tr></thead>
+          <tbody>${STOCK_LOGS.filter(l=>l.productKey===trendProd.key).length?[...STOCK_LOGS].filter(l=>l.productKey===trendProd.key).sort((a,b)=>b.date>a.date?1:-1).map(l=>{
+            const proj=PROJECTS.find(p=>p.key===l.projectKey),usr=USERS.find(u=>u.key===l.userKey);
+            return`<tr><td><strong>${fmtDate(l.date)}</strong></td>
+              <td><span class="badge ${l.type==='add'?'badge-green':l.type==='usage'?'badge-orange':'badge-blue'}">${l.type==='add'?'Stock In':l.type==='usage'?'Usage':'Adjust'}</span></td>
+              <td><strong>${l.qty}</strong> ${trendProd.unit}</td>
+              <td>${proj?.name||'-'}</td><td>${usr?.name||(l.entryType==='admin_adjustment'?'Admin':'-')}</td>
+              <td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:.72rem">${l.batchNo||'-'}</code></td>
+              <td style="font-size:.75rem;color:#aaa">${l.notes||'-'}</td></tr>`;}).join('')
+            :'<tr><td colspan="7" style="text-align:center;padding:30px;color:#bbb">No transactions recorded</td></tr>'}
+          </tbody></table></div></div>`:''}`;
+
+    setTimeout(()=>{
+      if(!invTrendProd&&usageByProd2.length&&$('allProdChart')){
+        new Chart($('allProdChart').getContext('2d'),{type:'bar',data:{labels:usageByProd2.map(d=>d.name),datasets:[
+          {label:'Used',data:usageByProd2.map(d=>d.usage),backgroundColor:'#fd7e14',borderRadius:4},
+          {label:'Stock In',data:usageByProd2.map(d=>d.received),backgroundColor:'#28a745',borderRadius:4}]},
+          options:{indexAxis:'y',responsive:true,scales:{x:{beginAtZero:true}},plugins:{legend:{labels:{font:{size:10}}}}}});
+      }
+      if(trendData.length&&$('trendChart')){
+        new Chart($('trendChart').getContext('2d'),{type:'bar',data:{labels:trendData.map(d=>d.day),datasets:[
+          {type:'line',label:'Stock Level',data:trendData.map(d=>d.stock),borderColor:'#003d7a',backgroundColor:'rgba(0,61,122,.12)',tension:.4,fill:true,borderWidth:2.5,yAxisID:'y'},
+          {type:'line',label:`Min Alert`,data:trendData.map(d=>d.min),borderColor:'#dc3545',borderDash:[6,3],borderWidth:2,fill:false,pointRadius:0,yAxisID:'y'},
+          {label:'Received',data:trendData.map(d=>d.recv),backgroundColor:'#28a745',borderRadius:3,yAxisID:'y'},
+          {label:'Used',data:trendData.map(d=>d.used),backgroundColor:'#fd7e14',borderRadius:3,yAxisID:'y'}]},
+          options:{responsive:true,scales:{y:{beginAtZero:true}},plugins:{legend:{labels:{font:{size:10}}}}}});
+      }
+    },100);
+  }
+}
+
+function buildInvPrintReport(pwStock,monthLogs){
+  const [yr,mo]=(invMonth||new Date().toISOString().slice(0,7)).split('-').map(Number);
+  const monthLabel=new Date(yr,mo-1,1).toLocaleString('en-GB',{month:'long',year:'numeric'});
+  const totalU=monthLogs.filter(l=>l.type==='usage').reduce((s,l)=>s+Number(l.qty||0),0);
+  const totalI=monthLogs.filter(l=>l.type==='add').reduce((s,l)=>s+Number(l.qty||0),0);
+  const lowC=pwStock.filter(p=>p.active&&(p.currentStock??0)<(p.minStock??0)).length;
+  document.querySelectorAll('.invPrintBlock').forEach(e=>e.remove());
+  const div=document.createElement('div');
+  div.className='invPrintBlock';
+  div.style.cssText='display:none';
+  div.innerHTML=`<div class="report-wrap" style="display:none;max-width:800px;margin:0 auto" id="invPrintContent">
+    <div class="report-hdr"><div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:12px">
+      <div><h2>${COMPANY.name}</h2><small>Integrated Pest Management Services</small></div>
+      <div style="text-align:right;font-size:.75rem;color:rgba(255,255,255,.65)"><div>${COMPANY.phone}</div><div>${COMPANY.email}</div></div>
+    </div></div>
+    <div class="report-title-bar"><h4>Inventory & Stock Report</h4><span style="font-size:.82rem;color:#666">${monthLabel}</span></div>
+    <div class="report-body">
+      <div class="sum-cards" style="grid-template-columns:repeat(4,1fr)">
+        ${[['Total Products',pwStock.filter(p=>p.active).length],['Low Stock Items',lowC],['Month Usage',totalU+' units'],['Month Stock-In',totalI+' units']].map(([l,v])=>`<div class="sum-card"><div class="sum-val">${v}</div><div class="sum-lbl">${l}</div></div>`).join('')}
+      </div>
+      <h4 style="font-weight:700;color:#555;margin-bottom:10px;border-bottom:1px solid #eee;padding-bottom:8px">Current Stock Status</h4>
+      <table style="width:100%;font-size:.8rem;border-collapse:collapse;margin-bottom:20px">
+        <thead><tr style="background:var(--p);color:#fff">${['#','Product','Category','Brand','Unit','Stock','Min Alert','Status'].map(h=>`<th style="padding:9px 12px;text-align:left;font-weight:700">${h}</th>`).join('')}</tr></thead>
+        <tbody>${pwStock.filter(p=>p.active).map((p,i)=>{const low=(p.currentStock??0)<(p.minStock??0);return`<tr style="border-bottom:1px solid #f0f0f0;background:${i%2?'#f9f9f9':'#fff'}">
+          <td style="padding:8px 12px;color:#aaa">${i+1}</td><td style="padding:8px 12px;font-weight:700">${p.name}</td><td style="padding:8px 12px">${p.category}</td>
+          <td style="padding:8px 12px">${p.brand||'-'}</td><td style="padding:8px 12px;font-weight:700">${p.unit}</td>
+          <td style="padding:8px 12px;font-weight:900;color:${low?'var(--r)':'var(--p)'}">${p.currentStock??0} ${p.unit}</td>
+          <td style="padding:8px 12px;color:#aaa">${p.minStock??0} ${p.unit}</td>
+          <td style="padding:8px 12px"><span style="background:${low?'#f8d7da':'#d4edda'};color:${low?'#721c24':'#155724'};padding:3px 8px;border-radius:10px;font-size:.72rem;font-weight:700">${low?'⚠ Low':'✓ OK'}</span></td>
+        </tr>`;}).join('')}</tbody>
+      </table>
+      <h4 style="font-weight:700;color:#555;margin-bottom:10px;border-bottom:1px solid #eee;padding-bottom:8px">Transaction Log – ${monthLabel}</h4>
+      <table style="width:100%;font-size:.78rem;border-collapse:collapse">
+        <thead><tr style="background:var(--p);color:#fff">${['Date','Product','Type','Qty','Project','By','Batch #','Notes'].map(h=>`<th style="padding:9px 12px;text-align:left;font-weight:700">${h}</th>`).join('')}</tr></thead>
+        <tbody>${monthLogs.sort((a,b)=>b.date>a.date?1:-1).map((l,i)=>{const prod=pwStock.find(p=>p.key===l.productKey),proj=PROJECTS.find(p=>p.key===l.projectKey),usr=USERS.find(u=>u.key===l.userKey);return`<tr style="border-bottom:1px solid #f0f0f0;background:${i%2?'#f9f9f9':'#fff'}">
+          <td style="padding:7px 12px;font-weight:700">${fmtDate(l.date)}</td><td style="padding:7px 12px;font-weight:700">${prod?.name||'-'}</td>
+          <td style="padding:7px 12px"><span style="background:${l.type==='add'?'#d4edda':l.type==='usage'?'#ffe8d4':'#d0e7ff'};color:${l.type==='add'?'#155724':l.type==='usage'?'#7d3f00':'#004080'};padding:2px 8px;border-radius:8px;font-size:.72rem;font-weight:700">${l.type==='add'?'Stock In':l.type==='usage'?'Usage':'Adjust'}</span></td>
+          <td style="padding:7px 12px;font-weight:700">${l.qty} ${prod?.unit||''}</td>
+          <td style="padding:7px 12px">${proj?.name||'-'}</td><td style="padding:7px 12px">${usr?.name||(l.entryType==='admin_adjustment'?'Admin':'-')}</td>
+          <td style="padding:7px 12px;font-family:monospace">${l.batchNo||'-'}</td><td style="padding:7px 12px;color:#aaa">${l.notes||'-'}</td>
+        </tr>`;}).join('')}</tbody>
+      </table>
+      <div class="rpt-footer"><span>${COMPANY.address}</span><span>Generated: ${fmtDT(Date.now())}</span></div>
+    </div>
+  </div>`;
+  document.body.appendChild(div);
+}
+
+// Product CRUD
+function openProductModal(key){
+  const p=key?getProductsWithStock().find(x=>x.key===key):null;
+  $('productModalTitle').textContent=p?'Edit Product':'Add Product';
+  $('productKey').value=p?.key||'';
+  $('productName').value=p?.name||'';
+  $('productCategory').value=p?.category||'Insecticide';
+  $('productBrand').value=p?.brand||'';
+  $('productSku').value=p?.sku||'';
+  $('productUnit').value=p?.unit||'ml';
+  $('productMinStock').value=p?.minStock??500;
+  $('productOpeningStock').value=p?.openingStock??0;
+  $('productNotes').value=p?.notes||'';
+  $('productActive').checked=p?.active??true;
+  $('openingStockGroup').style.display=p?'none':'block';
+  openModal('productModal');
+}
+
+function saveProduct(){
+  const key=$('productKey').value;
+  const name=$('productName').value.trim();
+  if(!name){showToast('Product name required','error');return;}
+  const data={name,category:$('productCategory').value,brand:$('productBrand').value,sku:$('productSku').value,unit:$('productUnit').value,minStock:Number($('productMinStock').value)||0,notes:$('productNotes').value,active:$('productActive').checked,updatedAt:Date.now()};
+  if(!key){data.openingStock=Number($('productOpeningStock').value)||0;data.createdAt=Date.now();}
+  const ref=key?DB.ref(`products/${key}`).update(data):DB.ref('products').push(data);
+  ref.then(()=>{closeModal('productModal');showToast(key?'Product updated!':'Product added!');}).catch(()=>showToast('Save failed','error'));
+}
+
+function deleteProduct(key){
+  if(!confirm('Delete this product and all its stock logs?'))return;
+  DB.ref(`products/${key}`).remove();
+  const toDelete=STOCK_LOGS.filter(l=>l.productKey===key);
+  toDelete.forEach(l=>DB.ref(`stockLogs/${l.key}`).remove());
+  showToast('Product deleted');
+}
+
+// Stock Adjust Modal
+function setAdjType(type){
+  adjType=type;
+  const notes={add:'Add received stock to inventory',usage:'Deduct used quantity from stock',adjust:'Manually set stock to this value'};
+  $('adjTypeNote').textContent=notes[type]||'';
+  ['add','usage','adjust'].forEach(t=>{
+    const btn=$(`adjType${t.charAt(0).toUpperCase()+t.slice(1)}`);
+    if(btn){btn.className=`btn btn-sm ${t===type?(t==='add'?'btn-success':t==='usage'?'btn-orange':'btn-primary'):'btn-outline btn-outline-'+(t==='add'?'success':t==='usage'?'orange':'primary')}`;}
+  });
+}
+
+function openStockModal(productKey){
+  adjProductKey=productKey;
+  const p=getProductsWithStock().find(x=>x.key===productKey);
+  $('stockModalTitle').innerHTML=`<i class="fas fa-exchange-alt me-2"></i>Adjust Stock – ${p?.name||''}`;
+  $('adjQty').value='';$('adjDate').value=todayStr();$('adjBatch').value='';$('adjSupplier').value='';$('adjNotes').value='';
+  setAdjType('add');
+  openModal('stockModal');
+}
+
+function saveStockAdj(){
+  const qty=Number($('adjQty').value);
+  if(!qty||qty<=0){showToast('Enter valid quantity','error');return;}
+  const data={productKey:adjProductKey,type:adjType,qty,date:$('adjDate').value,batchNo:$('adjBatch').value,supplier:$('adjSupplier').value,notes:$('adjNotes').value,entryType:'admin_adjustment',createdAt:Date.now()};
+  DB.ref('stockLogs').push(data).then(()=>{closeModal('stockModal');showToast('Stock updated!');}).catch(()=>showToast('Save failed','error'));
+}
+
+// Usage Modal
+function openUsageModal(){
+  const myProj=CU.role==='staff'?PROJECTS.filter(p=>p.active&&(CU.projects||[]).includes(p.key)):PROJECTS.filter(p=>p.active);
+  const pwStock=getProductsWithStock();
+  $('usageProduct').innerHTML='<option value="">-- Select Product --</option>'+pwStock.filter(p=>p.active).map(p=>`<option value="${p.key}">${p.name} (${p.unit}) · Stock: ${p.currentStock??0}</option>`).join('');
+  $('usageProject').innerHTML='<option value="">-- Select Project --</option>'+myProj.map(p=>`<option value="${p.key}">${p.code} – ${p.name}</option>`).join('');
+  $('usageQty').value='';$('usageDate').value=todayStr();$('usageBatch').value='';$('usageNotes').value='';
+  $('usageStockInfo').classList.add('hide');
+  openModal('usageModal');
+}
+
+function onUsageProductChange(){
+  const key=$('usageProduct').value;
+  const p=getProductsWithStock().find(x=>x.key===key);
+  if(!p){$('usageStockInfo').classList.add('hide');return;}
+  const low=(p.currentStock??0)<(p.minStock??0);
+  $('usageStockInfo').className=low?'alert alert-danger':'alert alert-success';
+  $('usageStockInfo').innerHTML=`<i class="fas fa-${low?'exclamation-triangle':'check-circle'}"></i> Current Stock: <strong>${p.currentStock??0} ${p.unit}</strong>${low?` — ⚠ Below minimum (${p.minStock} ${p.unit}). Notify admin!`:''}`;
+  $('usageStockInfo').classList.remove('hide');
+}
+
+function saveUsage(){
+  const pKey=$('usageProduct').value,prjKey=$('usageProject').value,qty=Number($('usageQty').value);
+  if(!pKey||!qty||qty<=0){showToast('Select product and enter quantity','error');return;}
+  if(!prjKey){showToast('Select a project','error');return;}
+  const data={productKey:pKey,projectKey:prjKey,type:'usage',qty,date:$('usageDate').value,batchNo:$('usageBatch').value,notes:$('usageNotes').value,userKey:CU.key,entryType:'staff_usage',createdAt:Date.now()};
+  DB.ref('stockLogs').push(data).then(()=>{closeModal('usageModal');showToast('Usage recorded!');}).catch(()=>showToast('Save failed','error'));
+}
+
+// ====================== FORM BUILDER ======================
+const FB_ICONS=['file-alt','tasks','spray-can','box','clipboard-check','tools','bug','search','chart-bar','list-alt','clipboard-list','bell','flask','shield-alt','cog'];
+const FB_FIELD_TYPES=[{v:'text',l:'Text Input'},{v:'number',l:'Number'},{v:'textarea',l:'Text Area'},{v:'select',l:'Dropdown'},{v:'checkbox',l:'Checkbox (Tick)'},{v:'date',l:'Date'},{v:'time',l:'Time'},{v:'signature',l:'Signature Pad'},{v:'table',l:'Table (Rows)'}];
+
+function renderFormBuilder(){
+  $('page-formbuilder').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div class="page-title" style="margin:0"><i class="fas fa-tools"></i>Form Builder</div>
+      <button class="btn btn-purple" onclick="openFbModal()"><i class="fas fa-plus"></i>New Form</button>
+    </div>
+    ${CUSTOM_FORMS.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">
+      ${CUSTOM_FORMS.map(f=>`<div class="card" style="margin:0">
+        <div class="card-body">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:42px;height:42px;background:#f3e8ff;border-radius:12px;display:flex;align-items:center;justify-content:center"><i class="fas fa-${f.icon||'file-alt'}" style="color:var(--pu)"></i></div>
+              <div><div style="font-weight:700;color:#222">${f.name}</div><div style="font-size:.72rem;color:#aaa">${(f.fields||[]).length} fields</div></div>
+            </div>
+            <span class="badge ${f.active?'badge-green':'badge-gray'}">${f.active?'Active':'Inactive'}</span>
+          </div>
+          ${f.description?`<div style="font-size:.78rem;color:#888;margin-bottom:8px">${f.description}</div>`:''}
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">
+            ${(f.fields||[]).slice(0,4).map(field=>`<span style="background:#f0f0f0;color:#666;font-size:.68rem;padding:2px 8px;border-radius:10px">${field.type==='signature'?'✍':field.type==='checkbox'?'☑':field.type==='table'?'⊞':'○'} ${field.label}</span>`).join('')}
+            ${(f.fields||[]).length>4?`<span style="background:#f0f0f0;color:#aaa;font-size:.68rem;padding:2px 8px;border-radius:10px">+${f.fields.length-4}</span>`:''}
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-outline-purple" style="flex:1" onclick="openFbModal('${f.key}')"><i class="fas fa-edit"></i>Edit</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteFbForm('${f.key}')"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      </div>`).join('')}
+    </div>`:`<div style="background:#fff;border:2px dashed #e0e0e0;border-radius:16px;padding:60px;text-align:center">
+      <i class="fas fa-tools" style="font-size:3rem;color:#e0e0e0;margin-bottom:16px;display:block"></i>
+      <p style="color:#bbb;font-weight:700">No custom forms yet</p>
+      <p style="color:#ddd;font-size:.82rem">Click "New Form" to create your first custom form</p>
+    </div>`}`;
+}
+
+function openFbModal(key){
+  fbEditKey=key||null;
+  const f=key?CUSTOM_FORMS.find(x=>x.key===key):null;
+  $('fbModalTitle').textContent=f?'Edit Form':'Create New Form';
+  $('fbName').value=f?.name||'';
+  $('fbDesc').value=f?.description||'';
+  fbSelIcon=f?.icon||'file-alt';
+  $('fbActive').checked=f?.active??true;
+  fbFields=f?.fields?JSON.parse(JSON.stringify(f.fields)):[];
+  fbSelFieldType='text';
+  renderFbIconGrid();
+  renderFbFieldTypeGrid();
+  renderFbFieldsList();
+  openModal('fbModal');
+}
+
+function renderFbIconGrid(){
+  $('fbIconGrid').innerHTML=FB_ICONS.map(ic=>`<button class="icon-btn${fbSelIcon===ic?' sel':''}" onclick="fbSelIcon='${ic}';renderFbIconGrid()"><i class="fas fa-${ic}"></i></button>`).join('');
+}
+function renderFbFieldTypeGrid(){
+  $('fbFieldTypeGrid').innerHTML=FB_FIELD_TYPES.map(t=>`<button class="field-type-btn${fbSelFieldType===t.v?' sel':''}" onclick="fbSelFieldType='${t.v}';renderFbFieldTypeGrid()">${t.l}</button>`).join('');
+}
+
+function fbAddField(){
+  const id=`field_${Date.now()}`;
+  const def={id,type:fbSelFieldType,label:`New ${fbSelFieldType} field`,required:false};
+  if(fbSelFieldType==='select')def.options=['Option 1','Option 2'];
+  if(fbSelFieldType==='table')def.tableColumns=['Column 1','Column 2'];
+  fbFields.push(def);
+  renderFbFieldsList();
+}
+
+function renderFbFieldsList(){
+  const box=$('fbFieldsList');
+  if(!fbFields.length){box.innerHTML='<div style="border:2px dashed #e9ecef;border-radius:10px;padding:24px;text-align:center;color:#bbb;font-size:.82rem">Add fields using the controls on the left</div>';return;}
+  box.innerHTML=fbFields.map((field,idx)=>`
+    <div class="field-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span class="field-type-badge">${field.type}</span>
+        <div style="display:flex;gap:4px">
+          <button style="width:24px;height:24px;border:none;background:#f0f0f0;border-radius:6px;cursor:pointer;font-size:.8rem;color:#666" onclick="fbMoveField(${idx},-1)" ${idx===0?'disabled':''}>↑</button>
+          <button style="width:24px;height:24px;border:none;background:#f0f0f0;border-radius:6px;cursor:pointer;font-size:.8rem;color:#666" onclick="fbMoveField(${idx},1)" ${idx===fbFields.length-1?'disabled':''}>↓</button>
+          <button style="width:24px;height:24px;border:none;background:#fff0f0;border-radius:6px;cursor:pointer;font-size:.75rem;color:var(--r)" onclick="fbRemoveField(${idx})"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+      <input type="text" value="${field.label}" placeholder="Field label" style="width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:7px 10px;font-size:.82rem;margin-bottom:6px;outline:none" oninput="fbFields[${idx}].label=this.value">
+      ${field.type==='text'?`<input type="text" value="${field.placeholder||''}" placeholder="Placeholder text" style="width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:7px 10px;font-size:.78rem;margin-bottom:6px;outline:none" oninput="fbFields[${idx}].placeholder=this.value">`:''}
+      ${field.type==='select'?`<textarea placeholder="Options (one per line)" style="width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:7px 10px;font-size:.78rem;resize:none;outline:none;height:60px" oninput="fbFields[${idx}].options=this.value.split('\\n').filter(Boolean)">${(field.options||[]).join('\n')}</textarea>`:''}
+      ${field.type==='table'?`<input type="text" value="${(field.tableColumns||[]).join(', ')}" placeholder="Columns (comma separated)" style="width:100%;border:1.5px solid #e0e0e0;border-radius:8px;padding:7px 10px;font-size:.78rem;outline:none" oninput="fbFields[${idx}].tableColumns=this.value.split(',').map(s=>s.trim()).filter(Boolean)">`:''}
+      ${!['checkbox','signature','table'].includes(field.type)?`<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.75rem;color:#777"><input type="checkbox" ${field.required?'checked':''} onchange="fbFields[${idx}].required=this.checked"> Required field</label>`:''}
+    </div>`).join('');
+}
+
+function fbMoveField(idx,dir){const ni=idx+dir;if(ni<0||ni>=fbFields.length)return;[fbFields[idx],fbFields[ni]]=[fbFields[ni],fbFields[idx]];renderFbFieldsList();}
+function fbRemoveField(idx){fbFields.splice(idx,1);renderFbFieldsList();}
+
+function saveFbForm(){
+  const name=$('fbName').value.trim();
+  if(!name){showToast('Form name required','error');return;}
+  const data={name,icon:fbSelIcon,description:$('fbDesc').value,fields:fbFields,active:$('fbActive').checked,updatedAt:Date.now()};
+  const ref=fbEditKey?DB.ref(`customForms/${fbEditKey}`).update(data):DB.ref('customForms').push({...data,createdAt:Date.now()});
+  ref.then(()=>{closeModal('fbModal');showToast(fbEditKey?'Form updated':'Form created');}).catch(()=>showToast('Save failed','error'));
+}
+function deleteFbForm(key){if(!confirm('Delete this form?'))return;DB.ref(`customForms/${key}`).remove().then(()=>showToast('Form deleted'));}
+
+// ====================== STAFF / CLIENTS / PROJECTS ======================
+function renderStaff(){
+  const staffList=USERS.filter(u=>u.role==='staff');
+  $('page-staff').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div class="page-title" style="margin:0"><i class="fas fa-users"></i>Staff Management</div>
+      <button class="btn btn-primary" onclick="openStaffModal()"><i class="fas fa-plus"></i>Add Staff</button>
+    </div>
+    <div class="card"><div class="table-wrap"><table><thead><tr><th>Emp ID</th><th>Name</th><th>Username</th><th>Projects</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${staffList.length?staffList.map(s=>{const pn=(s.projects||[]).map(pk=>PROJECTS.find(p=>p.key===pk)?.code).filter(Boolean).join(', ');
+      return`<tr><td><code style="background:#e8f0fe;color:var(--p);padding:2px 6px;border-radius:4px;font-size:.78rem">${s.empId||'-'}</code></td>
+        <td><strong>${s.name}</strong></td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:.78rem">${s.username}</code></td>
+        <td style="font-size:.78rem;color:#888">${pn||'None'}</td>
+        <td><span class="badge ${s.active?'badge-green':'badge-red'}">${s.active?'Active':'Inactive'}</span></td>
+        <td><div style="display:flex;gap:6px">
+          <button class="btn btn-xs btn-outline-primary" onclick="openStaffModal('${s.key}')"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-xs btn-outline-danger" onclick="delUser('${s.key}','staff')"><i class="fas fa-trash"></i></button>
+        </div></td></tr>`;}).join(''):'<tr><td colspan="6" style="text-align:center;padding:40px;color:#bbb">No staff members found</td></tr>'}
+    </tbody></table></div></div>`;
+}
+
+function openStaffModal(key){
+  const s=key?USERS.find(u=>u.key===key):null;
+  $('staffModalTitle').textContent=s?'Edit Staff':'Add Staff';
+  $('staffKey').value=s?.key||'';
+  $('staffEmpId').value=s?.empId||'';
+  $('staffName').value=s?.name||'';
+  $('staffUsername').value=s?.username||'';
+  $('staffPassword').value='';
+  $('staffPhone').value=s?.phone||'';
+  $('staffActive').checked=s?.active??true;
+  const assigned=s?.projects||[];
+  $('staffProjList').innerHTML=PROJECTS.filter(p=>p.active).map(p=>`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 6px;border-radius:6px;font-size:.85rem"><input type="checkbox" class="stProj" value="${p.key}" ${assigned.includes(p.key)?'checked':''}> ${p.code} – ${p.name}</label>`).join('')||'<p style="color:#bbb;font-size:.82rem">No active projects</p>';
+  openModal('staffModal');
+}
+
+function saveStaff(){
+  const key=$('staffKey').value,name=$('staffName').value.trim(),username=$('staffUsername').value.trim().toLowerCase(),password=$('staffPassword').value;
+  if(!$('staffEmpId').value.trim()||!name||!username){showToast('Fill required fields','error');return;}
+  if(!key&&!password){showToast('Password required for new staff','error');return;}
+  if(USERS.find(u=>u.username?.toLowerCase()===username&&u.key!==key)){showToast('Username already exists','error');return;}
+  const projects=[...document.querySelectorAll('.stProj:checked')].map(c=>c.value);
+  const data={empId:$('staffEmpId').value.trim(),name,username,phone:$('staffPhone').value.trim(),role:'staff',projects,active:$('staffActive').checked,updatedAt:Date.now()};
+  if(password)data.password=password;
+  const ref=key?DB.ref(`users/${key}`).update(data):DB.ref('users').push({...data,createdAt:Date.now()});
+  ref.then(()=>{closeModal('staffModal');showToast(key?'Staff updated':'Staff added');}).catch(()=>showToast('Save failed','error'));
+}
+
+function renderClients(){
+  const cl=USERS.filter(u=>u.role==='client');
+  $('page-clients').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div class="page-title" style="margin:0"><i class="fas fa-user-tie"></i>Client Accounts</div>
+      <button class="btn btn-success" onclick="openClientModal()"><i class="fas fa-plus"></i>Add Client</button>
+    </div>
+    <div class="card"><div class="table-wrap"><table><thead><tr><th>Username</th><th>Client Name</th><th>Project</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${cl.length?cl.map(c=>{const proj=PROJECTS.find(p=>p.key===c.projectKey);
+      return`<tr><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:.78rem">${c.username}</code></td>
+        <td><strong>${c.name}</strong></td><td>${proj?.name||'<span style="color:#bbb">Not assigned</span>'}</td>
+        <td><span class="badge ${c.active?'badge-green':'badge-red'}">${c.active?'Active':'Inactive'}</span></td>
+        <td><div style="display:flex;gap:6px">
+          <button class="btn btn-xs btn-outline-primary" onclick="openClientModal('${c.key}')"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-xs btn-outline-danger" onclick="delUser('${c.key}','client')"><i class="fas fa-trash"></i></button>
+        </div></td></tr>`;}).join(''):'<tr><td colspan="5" style="text-align:center;padding:40px;color:#bbb">No client accounts found</td></tr>'}
+    </tbody></table></div></div>`;
+}
+
+function openClientModal(key){
+  const c=key?USERS.find(u=>u.key===key):null;
+  $('clientModalTitle').textContent=c?'Edit Client':'Add Client';
+  $('clientKey').value=c?.key||'';
+  $('clientName').value=c?.name||'';
+  $('clientUsername').value=c?.username||'';
+  $('clientPassword').value='';
+  $('clientActive').checked=c?.active??true;
+  $('clientProject').innerHTML='<option value="">-- Select Project --</option>'+PROJECTS.filter(p=>p.active).map(p=>`<option value="${p.key}"${p.key===c?.projectKey?' selected':''}>${p.name}</option>`).join('');
+  openModal('clientModal');
+}
+
+function saveClient(){
+  const key=$('clientKey').value,name=$('clientName').value.trim(),username=$('clientUsername').value.trim().toLowerCase(),password=$('clientPassword').value,projKey=$('clientProject').value;
+  if(!name||!username||!projKey){showToast('Fill required fields','error');return;}
+  if(!key&&!password){showToast('Password required for new client','error');return;}
+  if(USERS.find(u=>u.username?.toLowerCase()===username&&u.key!==key)){showToast('Username already exists','error');return;}
+  const data={name,username,projectKey:projKey,role:'client',active:$('clientActive').checked,updatedAt:Date.now()};
+  if(password)data.password=password;
+  const ref=key?DB.ref(`users/${key}`).update(data):DB.ref('users').push({...data,createdAt:Date.now()});
+  ref.then(()=>{closeModal('clientModal');showToast(key?'Client updated':'Client added');}).catch(()=>showToast('Save failed','error'));
+}
+
+function renderProjects(){
+  $('page-projects').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div class="page-title" style="margin:0"><i class="fas fa-building"></i>Projects</div>
+      <button class="btn btn-primary" onclick="openProjectModal()"><i class="fas fa-plus"></i>Add Project</button>
+    </div>
+    <div class="card"><div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Client</th><th>GPS</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${PROJECTS.length?PROJECTS.map(p=>`<tr>
+      <td><strong style="color:var(--p)">${p.code}</strong></td><td><strong>${p.name}</strong></td><td>${p.client}</td>
+      <td><span class="badge ${p.gpsEnabled?'badge-green':'badge-gray'}">${p.gpsEnabled?'📍 Enabled':'Disabled'}</span></td>
+      <td><span class="badge ${p.active?'badge-green':'badge-red'}">${p.active?'Active':'Inactive'}</span></td>
+      <td><div style="display:flex;gap:6px">
+        <button class="btn btn-xs btn-outline-primary" onclick="openProjectModal('${p.key}')"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-xs btn-outline-danger" onclick="delProject('${p.key}')"><i class="fas fa-trash"></i></button>
+      </div></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:40px;color:#bbb">No projects found</td></tr>'}
+    </tbody></table></div></div>`;
+}
+
+function openProjectModal(key){
+  const p=key?PROJECTS.find(x=>x.key===key):null;
+  $('projectModalTitle').textContent=p?'Edit Project':'Add Project';
+  $('projectKey').value=p?.key||'';
+  $('projectCode').value=p?.code||'';
+  $('projectName').value=p?.name||'';
+  $('projectClient').value=p?.client||'';
+  $('projectContact').value=p?.contact||'';
+  $('projectAddress').value=p?.address||'';
+  $('projectLat').value=p?.lat||'';
+  $('projectLng').value=p?.lng||'';
+  $('projectRadius').value=p?.radius||50;
+  $('projectGps').checked=p?.gpsEnabled||false;
+  $('projectActive').checked=p?.active??true;
+  openModal('projectModal');
+}
+
+function captureMyLocation(){
+  if(!navigator.geolocation){showToast('Not supported','error');return;}
+  navigator.geolocation.getCurrentPosition(pos=>{$('projectLat').value=pos.coords.latitude.toFixed(6);$('projectLng').value=pos.coords.longitude.toFixed(6);showToast('Location captured!');},()=>showToast('Location error','error'),{enableHighAccuracy:true});
+}
+
+function saveProject(){
+  const key=$('projectKey').value,code=$('projectCode').value.trim(),name=$('projectName').value.trim(),client=$('projectClient').value.trim();
+  if(!code||!name||!client){showToast('Fill required fields','error');return;}
+  const data={code,name,client,contact:$('projectContact').value.trim(),address:$('projectAddress').value.trim(),lat:parseFloat($('projectLat').value)||null,lng:parseFloat($('projectLng').value)||null,radius:parseInt($('projectRadius').value)||50,gpsEnabled:$('projectGps').checked,active:$('projectActive').checked,updatedAt:Date.now()};
+  const ref=key?DB.ref(`projects/${key}`).update(data):DB.ref('projects').push({...data,createdAt:Date.now()});
+  ref.then(()=>{closeModal('projectModal');showToast(key?'Project updated':'Project added');}).catch(()=>showToast('Save failed','error'));
+}
+
+function delUser(key,type){if(!confirm(`Delete this ${type}?`))return;DB.ref(`users/${key}`).remove().then(()=>showToast('Deleted'));}
+function delProject(key){if(!confirm('Delete this project?'))return;DB.ref(`projects/${key}`).remove().then(()=>showToast('Project deleted'));}
+
+// ====================== REMARKS ======================
+function renderRemarks(){
+  $('page-remarks').innerHTML=`
+    <div class="page-title"><i class="fas fa-comments"></i>Client Remarks</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${[...REMARKS].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).map(r=>{
+        const usr=USERS.find(u=>u.key===r.userKey),proj=PROJECTS.find(p=>p.key===r.projectKey);
+        return`<div style="background:#fff3cd;border:1.5px solid #ffc107;border-radius:14px;padding:18px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div><strong style="color:#333"><i class="fas fa-user" style="color:#856404;margin-right:6px"></i>${usr?.name||'Unknown'}</strong>
+              <div style="font-size:.75rem;color:#aaa;margin-top:2px">${proj?.name||'-'} · ${fmtDT(r.createdAt)}</div>
+            </div>
+            <button class="btn btn-xs btn-outline-danger" onclick="deleteRemark('${r.key}')"><i class="fas fa-trash"></i></button>
+          </div>
+          <p style="color:#555;margin:0">${r.text}</p>
+        </div>`;}).join('')||'<div style="text-align:center;padding:60px;color:#bbb;background:#fff;border-radius:14px;border:1px solid #f0f0f0">No client remarks yet</div>'}
+    </div>`;
+}
+
+function openRemarkModal(){
+  const proj=PROJECTS.find(p=>p.key===CU.projectKey);
+  $('remarkProjInfo').innerHTML=`<i class="fas fa-info-circle"></i> Project: <strong>${proj?.name||'-'}</strong>`;
+  $('remarkText').value='';
+  const msg=encodeURIComponent(`*IPM Complaint – ${proj?.name||''}*\n\nPlease type your complaint here...`);
+  $('whatsappLink').href=`https://wa.me/${COMPANY.whatsapp}?text=${msg}`;
+  $('emailLink').href=`mailto:${COMPANY.email}?subject=IPM Complaint – ${proj?.name||''}`;
+  openModal('remarkModal');
+}
+
+function submitRemark(){
+  const text=$('remarkText').value.trim();
+  if(!text){showToast('Enter your remark','error');return;}
+  const msg=encodeURIComponent(`*IPM Complaint – ${PROJECTS.find(p=>p.key===CU.projectKey)?.name||''}*\n\n${text}`);
+  $('whatsappLink').href=`https://wa.me/${COMPANY.whatsapp}?text=${msg}`;
+  $('emailLink').href=`mailto:${COMPANY.email}?subject=IPM Complaint&body=${text}`;
+  DB.ref('remarks').push({text,userKey:CU.key,projectKey:CU.projectKey,createdAt:Date.now()}).then(()=>{closeModal('remarkModal');showToast('Remark submitted!');}).catch(()=>showToast('Submit failed','error'));
+}
+function deleteRemark(key){if(!confirm('Delete remark?'))return;DB.ref(`remarks/${key}`).remove().then(()=>showToast('Deleted'));}
+
+// ====================== SETTINGS ======================
+function renderSettings(){
+  $('page-settings').innerHTML=`
+    <div class="page-title"><i class="fas fa-cog"></i>Settings</div>
+    <div style="display:grid;grid-template-columns:1fr${CU.role==='admin'?' 1fr':''};gap:20px">
+      <div class="card">
+        <div class="card-header"><i class="fas fa-user me-2"></i>My Profile</div>
+        <div class="card-body">
+          <div class="form-group-i" style="margin-bottom:14px"><label>Name</label><input type="text" id="sName" value="${CU.name}"></div>
+          <div class="form-group-i" style="margin-bottom:14px"><label>New Password</label><input type="password" id="sPass" placeholder="Leave empty to keep current"></div>
+          <button class="btn btn-primary" onclick="saveSettings()"><i class="fas fa-save"></i>Save Changes</button>
+        </div>
+      </div>
+      ${CU.role==='admin'?`<div class="card">
+        <div class="card-header"><i class="fas fa-database me-2"></i>Data & System</div>
+        <div class="card-body">
+          <button class="btn btn-outline-success btn-full" style="margin-bottom:10px" onclick="exportData()"><i class="fas fa-download"></i>Export All Data (JSON)</button>
+          <div class="card" style="background:#f8f9fa;border:none;margin-top:14px">
+            <div class="card-body">
+              <div style="font-weight:700;color:#333;margin-bottom:10px">System Info</div>
+              <div style="font-size:.82rem;color:#666;line-height:1.8">
+                <div><span style="color:#aaa">Version:</span> 5.0 (Single HTML)</div>
+                <div><span style="color:#aaa">Company:</span> ${COMPANY.name}</div>
+                <div><span style="color:#aaa">Phone:</span> ${COMPANY.phone}</div>
+                <div><span style="color:#aaa">Email:</span> ${COMPANY.email}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`:''}
+    </div>`;
+}
+
+function saveSettings(){
+  const name=$('sName').value.trim(),pass=$('sPass').value;
+  if(!name){showToast('Name required','error');return;}
+  const data={name,updatedAt:Date.now()};
+  if(pass)data.password=pass;
+  DB.ref(`users/${CU.key}`).update(data).then(()=>{
+    CU.name=name;
+    $('topUserName').textContent=name;
+    $('topUserAvatar').textContent=name.charAt(0).toUpperCase();
+    showToast('Settings saved!');
+  }).catch(()=>showToast('Save failed','error'));
+}
+
+function exportData(){
+  const d={users:USERS,projects:PROJECTS,records:RECORDS,remarks:REMARKS,customForms:CUSTOM_FORMS,products:PRODUCTS,stockLogs:STOCK_LOGS,exportedAt:new Date().toISOString(),exportedBy:CU.name};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
+  a.download=`a2z_ipm_backup_${todayStr()}.json`;a.click();
+  showToast('Data exported!');
+}
+
+// ====================== INIT ======================
+document.addEventListener('DOMContentLoaded',()=>{
+  $('loadingScreen').classList.remove('hide');
+  setupListeners();
+});
+</script>
+</body>
+</html>
